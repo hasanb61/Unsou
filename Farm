@@ -1,19 +1,19 @@
---========================================================--
---              ELITE BOSS FARM - FINAL                  --
---========================================================--
+--// =========================================================
+--// ⚡ ELITE BOSS HUB - MOBILE TOUCH PAUSE VERSION
+--// =========================================================
 
 local Players = game:GetService("Players")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local VirtualUser = game:GetService("VirtualUser")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
---========================================================--
--- PORTALLAR
---========================================================--
+--// =========================================================
+--// PORTALLAR
+--// =========================================================
 
 local portals = {
-
     Undyne = CFrame.new(
         -2425.2763671875,
         533.9141235351562,
@@ -66,12 +66,11 @@ local safePosition = CFrame.new(
     -1764.2423095703125
 )
 
---========================================================--
--- BOSS AYARLARI
---========================================================--
+--// =========================================================
+--// BOSS CONFIG
+--// =========================================================
 
 local farmConfigs = {
-
     Undyne = {
         bossName = "UndyneULTRA",
         minLevel = 1600,
@@ -115,42 +114,100 @@ local farmConfigs = {
     }
 }
 
---========================================================--
--- STATE
---========================================================--
+--// =========================================================
+--// ESKİ GUI TEMİZLE
+--// =========================================================
+
+local function removeOldGui()
+    pcall(function()
+        local playerGui = player:FindFirstChildOfClass("PlayerGui")
+
+        if playerGui then
+            for _, gui in ipairs(playerGui:GetChildren()) do
+                if gui:IsA("ScreenGui") then
+                    if gui.Name == "BossFarmUltimateGui"
+                        or gui.Name == "EliteBossHub"
+                        or gui.Name == "BossFarmGui" then
+
+                        gui:Destroy()
+                    end
+                end
+            end
+        end
+    end)
+
+    pcall(function()
+        for _, gui in ipairs(game.CoreGui:GetChildren()) do
+            if gui:IsA("ScreenGui") then
+                if gui.Name == "BossFarmUltimateGui"
+                    or gui.Name == "EliteBossHub"
+                    or gui.Name == "BossFarmGui" then
+
+                    gui:Destroy()
+                end
+            end
+        end
+    end)
+end
+
+removeOldGui()
+
+--// Biraz bekleyip eski GUI kalıntısı varsa tekrar temizle
+task.wait(0.1)
+removeOldGui()
+
+--// =========================================================
+--// GLOBAL DURUMLAR
+--// =========================================================
 
 local activeFarm = nil
 local autoLevelEnabled = false
-local currentlyFarming = nil
 
--- Aynı düşük HP'de heal spamlamasını önler
+-- Gerçek kullanıcı dokunuyorsa TRUE
+local userTouchingScreen = false
+
+-- Kaç tane gerçek dokunma aktif
+local activeTouchCount = 0
+
+-- Heal'in aynı HP seviyesinde spamlanmasını engeller
 local healTriggered = false
 
---========================================================--
--- ESKİ GUI TEMİZLE
---========================================================--
+--// =========================================================
+--// 📱 MOBILE TOUCH DETECTOR
+--// =========================================================
 
-pcall(function()
-
-    local oldGui =
-        player.PlayerGui:FindFirstChild("BossFarmUltimateGui")
-
-    if oldGui then
-        oldGui:Destroy()
-    end
-
-    local oldCoreGui =
-        game.CoreGui:FindFirstChild("BossFarmUltimateGui")
-
-    if oldCoreGui then
-        oldCoreGui:Destroy()
-    end
-
+UserInputService.TouchStarted:Connect(function(touch, gameProcessed)
+    activeTouchCount = activeTouchCount + 1
+    userTouchingScreen = true
 end)
 
---========================================================--
--- ANTI AFK
---========================================================--
+UserInputService.TouchEnded:Connect(function(touch, gameProcessed)
+    activeTouchCount = math.max(0, activeTouchCount - 1)
+
+    if activeTouchCount <= 0 then
+        activeTouchCount = 0
+        userTouchingScreen = false
+    end
+end)
+
+-- Eğer TouchEnded herhangi bir sebeple kaçarsa
+-- durumun sonsuza kadar TRUE kalmasını önlemek için
+task.spawn(function()
+    while true do
+        task.wait(1)
+
+        pcall(function()
+            if not UserInputService.TouchEnabled then
+                userTouchingScreen = false
+                activeTouchCount = 0
+            end
+        end)
+    end
+end)
+
+--// =========================================================
+--// ANTI-AFK
+--// =========================================================
 
 task.spawn(function()
 
@@ -184,15 +241,15 @@ task.spawn(function()
 
             if camera then
 
-                local oldCFrame = camera.CFrame
+                local currentCFrame = camera.CFrame
 
                 camera.CFrame =
-                    oldCFrame *
+                    currentCFrame *
                     CFrame.Angles(0, math.rad(0.01), 0)
 
                 task.wait(0.1)
 
-                camera.CFrame = oldCFrame
+                camera.CFrame = currentCFrame
 
             end
 
@@ -202,41 +259,45 @@ task.spawn(function()
 
 end)
 
---========================================================--
--- TELEPORT
---========================================================--
+--// =========================================================
+--// 1 - KILIÇ
+--// SADECE HEAL SONRASI KULLANILIR
+--// =========================================================
 
-local function teleportTo(cframe)
+local function equipSword()
 
     pcall(function()
 
-        local character = player.Character
+        VirtualInputManager:SendKeyEvent(
+            true,
+            Enum.KeyCode.One,
+            false,
+            game
+        )
 
-        if not character then
-            return
-        end
+        task.wait(0.05)
 
-        local root =
-            character:FindFirstChild("HumanoidRootPart")
-
-        if root then
-
-            root.AssemblyLinearVelocity =
-                Vector3.new(0, 0, 0)
-
-            root.CFrame = cframe
-
-        end
+        VirtualInputManager:SendKeyEvent(
+            false,
+            Enum.KeyCode.One,
+            false,
+            game
+        )
 
     end)
 
 end
 
---========================================================--
--- MOUSE CLICK
---========================================================--
+--// =========================================================
+--// MERKEZ TIK
+--// =========================================================
 
 local function clickCenter()
+
+    -- 📱 Kullanıcı ekrana dokunuyorsa AUTO CLICK DURUR
+    if userTouchingScreen then
+        return
+    end
 
     pcall(function()
 
@@ -246,14 +307,14 @@ local function clickCenter()
             return
         end
 
-        local viewport = camera.ViewportSize
+        local viewportSize = camera.ViewportSize
 
-        local x = viewport.X / 2
-        local y = viewport.Y / 2
+        local clickX = viewportSize.X / 2
+        local clickY = viewportSize.Y / 2
 
         VirtualInputManager:SendMouseButtonEvent(
-            x,
-            y,
+            clickX,
+            clickY,
             0,
             true,
             game,
@@ -263,8 +324,8 @@ local function clickCenter()
         task.wait(0.02)
 
         VirtualInputManager:SendMouseButtonEvent(
-            x,
-            y,
+            clickX,
+            clickY,
             0,
             false,
             game,
@@ -275,15 +336,15 @@ local function clickCenter()
 
 end
 
---========================================================--
--- SUSPORTAL SPECIAL
---========================================================--
+--// =========================================================
+--// SUSPORTAL ÖZEL YETENEK
+--// =========================================================
 
 local function useSpecialAbility()
 
     pcall(function()
 
-        -- 5
+        -- 5'e bas
         VirtualInputManager:SendKeyEvent(
             true,
             Enum.KeyCode.Five,
@@ -302,37 +363,9 @@ local function useSpecialAbility()
 
         task.wait(0.2)
 
-        -- Center click
-        local camera = workspace.CurrentCamera
-
-        if camera then
-
-            local viewport = camera.ViewportSize
-
-            local x = viewport.X / 2
-            local y = viewport.Y / 2
-
-            VirtualInputManager:SendMouseButtonEvent(
-                x,
-                y,
-                0,
-                true,
-                game,
-                1
-            )
-
-            task.wait(0.05)
-
-            VirtualInputManager:SendMouseButtonEvent(
-                x,
-                y,
-                0,
-                false,
-                game,
-                1
-            )
-
-        end
+        -- Merkez tık
+        -- Kullanıcı o anda dokunuyorsa clickCenter zaten engeller
+        clickCenter()
 
         task.wait(0.8)
 
@@ -340,40 +373,27 @@ local function useSpecialAbility()
 
 end
 
---========================================================--
--- ACTIVE BOSSES
---========================================================--
-
-local function getActiveBosses()
-
-    return workspace:FindFirstChild("ActiveBosses")
-
-end
-
---========================================================--
--- BOSS MODEL BUL
---========================================================--
+--// =========================================================
+--// BOSS MODEL BUL
+--// ActiveBosses > Slot > Bosses
+--// =========================================================
 
 local function findBossModel(bossName)
 
-    local activeBosses = getActiveBosses()
+    local activeBosses = workspace:FindFirstChild("ActiveBosses")
 
     if not activeBosses then
         return nil
     end
 
-    for _, slot in ipairs(
-        activeBosses:GetChildren()
-    ) do
+    for _, slot in ipairs(activeBosses:GetChildren()) do
 
         local bossesFolder =
             slot:FindFirstChild("Bosses", true)
 
         if bossesFolder then
 
-            for _, object in ipairs(
-                bossesFolder:GetDescendants()
-            ) do
+            for _, object in ipairs(bossesFolder:GetDescendants()) do
 
                 if object:IsA("Model")
                     and object.Name == bossName then
@@ -392,22 +412,21 @@ local function findBossModel(bossName)
 
 end
 
---========================================================--
--- BOSS BEKLE
---========================================================--
+--// =========================================================
+--// BOSS BEKLE
+--// =========================================================
 
 local function waitForBoss(bossName)
 
     while activeFarm ~= nil do
 
-        local boss =
-            findBossModel(bossName)
+        local boss = findBossModel(bossName)
 
         if boss then
             return boss
         end
 
-        task.wait(0.15)
+        task.wait(0.2)
 
     end
 
@@ -415,117 +434,140 @@ local function waitForBoss(bossName)
 
 end
 
---========================================================--
--- LEVEL
---========================================================--
+--// =========================================================
+--// LEVEL OKU
+--// =========================================================
 
 local function getPlayerLevel()
 
-    local leaderstats =
-        player:FindFirstChild("leaderstats")
+    local success, result = pcall(function()
 
-    if not leaderstats then
-        return 0
+        local leaderstats =
+            player:FindFirstChild("leaderstats")
+
+        if not leaderstats then
+            return 0
+        end
+
+        local level =
+            leaderstats:FindFirstChild("LV")
+
+        if not level then
+            return 0
+        end
+
+        return tonumber(level.Value) or 0
+
+    end)
+
+    if success then
+        return result
     end
 
-    local level =
-        leaderstats:FindFirstChild("LV")
-
-    if not level then
-        return 0
-    end
-
-    return tonumber(level.Value) or 0
+    return 0
 
 end
 
---========================================================--
--- AUTO LEVEL
---========================================================--
+--// =========================================================
+--// AUTO LEVEL BOSS
+--// =========================================================
 
 local function getAutoBoss()
 
-    local level =
-        getPlayerLevel()
+    local level = getPlayerLevel()
 
     if level >= 5500 then
-
         return "Outertale"
 
     elseif level >= 4900 then
-
         return "Hyperdust"
 
     elseif level >= 3985 then
-
         return "Bob"
 
     elseif level >= 3250 then
-
         return "OffHead"
 
     elseif level >= 1600 then
-
         return "Undyne"
 
     elseif level >= 305 then
-
         return "Susportal"
-
     end
 
     return nil
 
 end
 
---========================================================--
--- HP OKUMA
---========================================================--
+--// =========================================================
+--// HP OKU
+--// =========================================================
 
 local function getHealthPercent()
 
-    local success, result =
-        pcall(function()
+    local success, result = pcall(function()
 
-            local hpDigits =
-                player.PlayerGui
-                    .PlayerMain
-                    .Dark
-                    .StatHUD
-                    .Health
-                    .Digits
+        local playerGui =
+            player:FindFirstChildOfClass("PlayerGui")
 
-            if not hpDigits then
-                return nil
-            end
+        if not playerGui then
+            return nil
+        end
 
-            if not hpDigits:IsA("TextLabel") then
-                return nil
-            end
+        local playerMain =
+            playerGui:FindFirstChild("PlayerMain")
 
-            local current, maximum =
-                hpDigits.Text:match(
-                    "(%d+)[%s/]+(%d+)"
-                )
+        if not playerMain then
+            return nil
+        end
 
-            if not current or not maximum then
-                return nil
-            end
+        local dark =
+            playerMain:FindFirstChild("Dark")
 
-            current = tonumber(current)
-            maximum = tonumber(maximum)
+        if not dark then
+            return nil
+        end
 
-            if not current
-                or not maximum
-                or maximum <= 0 then
+        local statHUD =
+            dark:FindFirstChild("StatHUD")
 
-                return nil
+        if not statHUD then
+            return nil
+        end
 
-            end
+        local health =
+            statHUD:FindFirstChild("Health")
 
-            return (current / maximum) * 100
+        if not health then
+            return nil
+        end
 
-        end)
+        local digits =
+            health:FindFirstChild("Digits")
+
+        if not digits then
+            return nil
+        end
+
+        local text = digits.Text
+
+        local currentStr, maxStr =
+            text:match("(%d+)[%s/]+(%d+)")
+
+        if not currentStr or not maxStr then
+            return nil
+        end
+
+        local currentHP = tonumber(currentStr)
+        local maxHP = tonumber(maxStr)
+
+        if not currentHP or not maxHP or maxHP <= 0 then
+            return nil
+        end
+
+        return (currentHP / maxHP) * 100
+
+    end)
 
     if success then
         return result
@@ -535,9 +577,10 @@ local function getHealthPercent()
 
 end
 
---========================================================--
--- HEAL + SADECE BOB/SUSPORTAL'DA 1
---========================================================--
+--// =========================================================
+--// HEAL SİSTEMİ
+--// SADECE BOB + SUSPORTAL
+--// =========================================================
 
 task.spawn(function()
 
@@ -548,44 +591,32 @@ task.spawn(function()
         pcall(function()
 
             if not activeFarm then
-
-                healTriggered = false
                 return
-
             end
 
             local config =
                 farmConfigs[activeFarm]
 
-            if not config
-                or not config.heal then
-
-                healTriggered = false
+            if not config or not config.heal then
                 return
-
             end
 
-            local hp =
+            local percent =
                 getHealthPercent()
 
-            if not hp then
+            if not percent then
                 return
             end
 
-            --========================================
-            -- HP %30 VEYA ALTI
-            --========================================
+            -- %30 veya altına düştüyse
+            if percent <= 30 then
 
-            if hp <= 30 then
-
+                -- Aynı düşüşte sadece 1 kere
                 if not healTriggered then
 
                     healTriggered = true
 
-                    --================================
-                    -- 3'E BAS
-                    --================================
-
+                    -- 3'e geç
                     VirtualInputManager:SendKeyEvent(
                         true,
                         Enum.KeyCode.Three,
@@ -602,91 +633,61 @@ task.spawn(function()
                         game
                     )
 
-                    task.wait(0.15)
+                    task.wait(0.2)
 
-                    --================================
-                    -- HEAL CLICK
-                    --================================
-
+                    -- Heal butonuna tıkla
                     local camera =
                         workspace.CurrentCamera
 
                     if camera then
 
-                        local viewport =
+                        local viewportSize =
                             camera.ViewportSize
 
-                        local x =
-                            viewport.X / 2
+                        local clickX =
+                            viewportSize.X / 2
 
-                        local y =
-                            viewport.Y - 100
+                        local clickY =
+                            viewportSize.Y - 100
 
-                        VirtualInputManager:
-                            SendMouseButtonEvent(
-                                x,
-                                y,
-                                0,
-                                true,
-                                game,
-                                1
-                            )
+                        VirtualInputManager:SendMouseButtonEvent(
+                            clickX,
+                            clickY,
+                            0,
+                            true,
+                            game,
+                            1
+                        )
 
                         task.wait(0.05)
 
-                        VirtualInputManager:
-                            SendMouseButtonEvent(
-                                x,
-                                y,
-                                0,
-                                false,
-                                game,
-                                1
-                            )
+                        VirtualInputManager:SendMouseButtonEvent(
+                            clickX,
+                            clickY,
+                            0,
+                            false,
+                            game,
+                            1
+                        )
 
                     end
 
-                    --================================
-                    -- HEAL UYGULANSIN
-                    --================================
-
                     task.wait(0.5)
 
-                    --================================
-                    -- SADECE BOB + SUSPORTAL
-                    -- HEAL SONRASI 1'E DÖN
-                    --================================
-
+                    -- Heal sonrası tekrar kılıca dön
                     if activeFarm == "Bob"
                         or activeFarm == "Susportal" then
 
-                        VirtualInputManager:SendKeyEvent(
-                            true,
-                            Enum.KeyCode.One,
-                            false,
-                            game
-                        )
-
-                        task.wait(0.05)
-
-                        VirtualInputManager:SendKeyEvent(
-                            false,
-                            Enum.KeyCode.One,
-                            false,
-                            game
-                        )
-
-                        task.wait(0.25)
+                        equipSword()
 
                     end
 
                 end
 
-            elseif hp > 30 then
+            else
 
-                -- Tekrar %30 altına düşerse
-                -- yeniden heal yapılabilir.
-
+                -- HP tekrar %30 üstüne çıktıysa
+                -- yeni heal için sistemi hazırla
                 healTriggered = false
 
             end
@@ -697,9 +698,9 @@ task.spawn(function()
 
 end)
 
---========================================================--
--- GUI
---========================================================--
+--// =========================================================
+--// GUI
+--// =========================================================
 
 local screenGui =
     Instance.new("ScreenGui")
@@ -707,29 +708,40 @@ local screenGui =
 screenGui.Name =
     "BossFarmUltimateGui"
 
-screenGui.ResetOnSpawn = false
+screenGui.ResetOnSpawn =
+    false
+
+screenGui.ZIndexBehavior =
+    Enum.ZIndexBehavior.Sibling
 
 screenGui.Parent =
-    player.PlayerGui
+    player:WaitForChild("PlayerGui")
+
+--// FRAME
 
 local frame =
     Instance.new("Frame")
 
 frame.Size =
-    UDim2.new(0, 280, 0, 470)
+    UDim2.new(0, 270, 0, 430)
 
 frame.Position =
-    UDim2.new(0.5, -140, 0.08, 0)
+    UDim2.new(0.5, -135, 0.08, 0)
 
 frame.BackgroundColor3 =
     Color3.fromRGB(15, 15, 18)
 
-frame.BorderSizePixel = 0
+frame.BorderSizePixel =
+    0
 
-frame.Active = true
-frame.Draggable = true
+frame.Active =
+    true
 
-frame.Parent = screenGui
+frame.Draggable =
+    true
+
+frame.Parent =
+    screenGui
 
 local frameCorner =
     Instance.new("UICorner")
@@ -737,7 +749,8 @@ local frameCorner =
 frameCorner.CornerRadius =
     UDim.new(0, 14)
 
-frameCorner.Parent = frame
+frameCorner.Parent =
+    frame
 
 local frameStroke =
     Instance.new("UIStroke")
@@ -745,13 +758,13 @@ local frameStroke =
 frameStroke.Color =
     Color3.fromRGB(45, 45, 55)
 
-frameStroke.Thickness = 1.5
+frameStroke.Thickness =
+    1.5
 
-frameStroke.Parent = frame
+frameStroke.Parent =
+    frame
 
---========================================================--
--- TITLE
---========================================================--
+--// TITLE
 
 local title =
     Instance.new("TextLabel")
@@ -768,12 +781,14 @@ title.TextColor3 =
 title.Text =
     "⚡ ELITE BOSS HUB ⚡"
 
-title.TextSize = 12
+title.TextSize =
+    12
 
 title.Font =
     Enum.Font.GothamBold
 
-title.Parent = frame
+title.Parent =
+    frame
 
 local titleCorner =
     Instance.new("UICorner")
@@ -781,66 +796,71 @@ local titleCorner =
 titleCorner.CornerRadius =
     UDim.new(0, 14)
 
-titleCorner.Parent = title
+titleCorner.Parent =
+    title
 
---========================================================--
--- LEVEL
---========================================================--
+--// LEVEL LABEL
 
 local levelLabel =
     Instance.new("TextLabel")
 
 levelLabel.Size =
-    UDim2.new(0.9, 0, 0, 28)
+    UDim2.new(0.9, 0, 0, 25)
 
 levelLabel.Position =
-    UDim2.new(0.05, 0, 0.09, 0)
+    UDim2.new(0.05, 0, 0.095, 0)
 
-levelLabel.BackgroundTransparency = 1
+levelLabel.BackgroundTransparency =
+    1
 
 levelLabel.TextColor3 =
-    Color3.fromRGB(210, 210, 220)
+    Color3.fromRGB(180, 180, 190)
 
 levelLabel.Text =
     "LV: 0"
 
-levelLabel.TextSize = 11
+levelLabel.TextSize =
+    11
 
 levelLabel.Font =
     Enum.Font.GothamSemibold
 
-levelLabel.Parent = frame
+levelLabel.Parent =
+    frame
 
---========================================================--
--- BUTTON CREATOR
---========================================================--
+--// BUTTON OLUŞTUR
 
-local function createButton(name, y)
+local function createButton(name, posY)
 
-    local button =
+    local btn =
         Instance.new("TextButton")
 
-    button.Size =
+    btn.Size =
         UDim2.new(0.9, 0, 0, 40)
 
-    button.Position =
-        UDim2.new(0.05, 0, y, 0)
+    btn.Position =
+        UDim2.new(0.05, 0, posY, 0)
 
-    button.BackgroundColor3 =
+    btn.BackgroundColor3 =
         Color3.fromRGB(25, 25, 32)
 
-    button.TextColor3 =
+    btn.TextColor3 =
         Color3.fromRGB(180, 180, 190)
 
-    button.Text =
+    btn.Text =
         name .. " [KAPALI]"
 
-    button.TextSize = 11
+    btn.TextSize =
+        11
 
-    button.Font =
+    btn.Font =
         Enum.Font.GothamSemibold
 
-    button.Parent = frame
+    btn.AutoButtonColor =
+        true
+
+    btn.Parent =
+        frame
 
     local corner =
         Instance.new("UICorner")
@@ -848,7 +868,8 @@ local function createButton(name, y)
     corner.CornerRadius =
         UDim.new(0, 10)
 
-    corner.Parent = button
+    corner.Parent =
+        btn
 
     local stroke =
         Instance.new("UIStroke")
@@ -856,195 +877,248 @@ local function createButton(name, y)
     stroke.Color =
         Color3.fromRGB(40, 40, 50)
 
-    stroke.Thickness = 1
+    stroke.Thickness =
+        1
 
-    stroke.Parent = button
+    stroke.Parent =
+        btn
 
-    return button
+    return btn
 
 end
 
 local autoButton =
-    createButton(
-        "AUTO LEVEL FARM",
-        0.15
-    )
+    createButton("AUTO LEVEL", 0.14)
 
 local undyneButton =
-    createButton(
-        "UNDYNE ULTRA",
-        0.25
-    )
+    createButton("UNDYNE ULTRA", 0.25)
 
 local outertaleButton =
-    createButton(
-        "OUTERTALE SANS",
-        0.35
-    )
+    createButton("OUTERTALE SANS", 0.36)
 
 local hyperdustButton =
-    createButton(
-        "HYPER DUST",
-        0.45
-    )
+    createButton("HYPER DUST", 0.47)
 
 local bobButton =
-    createButton(
-        "BOB (+ HEAL)",
-        0.55
-    )
+    createButton("BOB (+ HEAL)", 0.58)
 
 local offHeadButton =
-    createButton(
-        "OFF HEAD",
-        0.65
-    )
+    createButton("OFF HEAD", 0.69)
 
 local susportalButton =
-    createButton(
-        "SUSPORTAL (+ HEAL)",
-        0.75
-    )
+    createButton("SUSPORTAL (+ HEAL)", 0.80)
 
---========================================================--
--- BUTTON TABLOSU
---========================================================--
+--// =========================================================
+--// BUTTON RESET
+--// =========================================================
 
-local buttons = {
-
-    Undyne = undyneButton,
-
-    Outertale = outertaleButton,
-
-    Hyperdust = hyperdustButton,
-
-    Bob = bobButton,
-
-    OffHead = offHeadButton,
-
-    Susportal = susportalButton
-
+local allButtons = {
+    autoButton,
+    undyneButton,
+    outertaleButton,
+    hyperdustButton,
+    bobButton,
+    offHeadButton,
+    susportalButton
 }
-
---========================================================--
--- RESET
---========================================================--
 
 local function resetButtons()
 
-    for name, button in pairs(buttons) do
+    for _, btn in ipairs(allButtons) do
 
-        button.Text =
-            name .. " [KAPALI]"
+        local baseName =
+            btn.Text:match("^(.+) %[")
 
-        button.BackgroundColor3 =
+        if baseName then
+            btn.Text =
+                baseName .. " [KAPALI]"
+        end
+
+        btn.BackgroundColor3 =
             Color3.fromRGB(25, 25, 32)
 
-        button.TextColor3 =
+        btn.TextColor3 =
             Color3.fromRGB(180, 180, 190)
 
     end
 
-    autoButton.Text =
-        "AUTO LEVEL FARM [KAPALI]"
-
-    autoButton.BackgroundColor3 =
-        Color3.fromRGB(25, 25, 32)
-
-    autoButton.TextColor3 =
-        Color3.fromRGB(180, 180, 190)
-
 end
 
---========================================================--
--- MANUAL FARM
---========================================================--
-
-local function activateManual(name)
-
-    autoLevelEnabled = false
-
-    activeFarm = name
-
-    healTriggered = false
+local function activateButton(btn, name)
 
     resetButtons()
 
-    local button =
-        buttons[name]
+    activeFarm =
+        name
 
-    if button then
+    btn.Text =
+        btn.Text:match("^(.+) %[")
+        .. " [AÇIK]"
 
-        button.Text =
-            name .. " [AÇIK]"
+    btn.BackgroundColor3 =
+        Color3.fromRGB(60, 30, 90)
 
-        button.BackgroundColor3 =
-            Color3.fromRGB(60, 30, 90)
+    btn.TextColor3 =
+        Color3.fromRGB(255, 255, 255)
 
-        button.TextColor3 =
-            Color3.fromRGB(255, 255, 255)
+    healTriggered = false
+
+end
+
+--// =========================================================
+--// MANUEL BUTTONLAR
+--// =========================================================
+
+undyneButton.MouseButton1Click:Connect(function()
+
+    autoLevelEnabled = false
+
+    if activeFarm == "Undyne" then
+
+        activeFarm = nil
+        resetButtons()
+
+    else
+
+        activateButton(
+            undyneButton,
+            "Undyne"
+        )
 
     end
 
-end
+end)
 
---========================================================--
--- MANUAL BUTTONLAR
---========================================================--
+outertaleButton.MouseButton1Click:Connect(function()
 
-for name, button in pairs(buttons) do
+    autoLevelEnabled = false
 
-    button.MouseButton1Click:Connect(
-        function()
+    if activeFarm == "Outertale" then
 
-            if not autoLevelEnabled
-                and activeFarm == name then
+        activeFarm = nil
+        resetButtons()
 
-                activeFarm = nil
+    else
 
-                healTriggered = false
+        activateButton(
+            outertaleButton,
+            "Outertale"
+        )
 
-                resetButtons()
+    end
 
-            else
+end)
 
-                activateManual(name)
+hyperdustButton.MouseButton1Click:Connect(function()
 
-            end
+    autoLevelEnabled = false
 
-        end
-    )
+    if activeFarm == "Hyperdust" then
 
-end
+        activeFarm = nil
+        resetButtons()
 
---========================================================--
--- AUTO LEVEL BUTTON
---========================================================--
+    else
 
-autoButton.MouseButton1Click:Connect(
-    function()
+        activateButton(
+            hyperdustButton,
+            "Hyperdust"
+        )
 
-        if autoLevelEnabled then
+    end
 
-            autoLevelEnabled = false
-            activeFarm = nil
-            healTriggered = false
+end)
 
-            resetButtons()
+bobButton.MouseButton1Click:Connect(function()
 
-        else
+    autoLevelEnabled = false
 
-            autoLevelEnabled = true
+    if activeFarm == "Bob" then
+
+        activeFarm = nil
+        resetButtons()
+
+    else
+
+        activateButton(
+            bobButton,
+            "Bob"
+        )
+
+    end
+
+end)
+
+offHeadButton.MouseButton1Click:Connect(function()
+
+    autoLevelEnabled = false
+
+    if activeFarm == "OffHead" then
+
+        activeFarm = nil
+        resetButtons()
+
+    else
+
+        activateButton(
+            offHeadButton,
+            "OffHead"
+        )
+
+    end
+
+end)
+
+susportalButton.MouseButton1Click:Connect(function()
+
+    autoLevelEnabled = false
+
+    if activeFarm == "Susportal" then
+
+        activeFarm = nil
+        resetButtons()
+
+    else
+
+        activateButton(
+            susportalButton,
+            "Susportal"
+        )
+
+    end
+
+end)
+
+--// =========================================================
+--// AUTO LEVEL BUTTON
+--// =========================================================
+
+autoButton.MouseButton1Click:Connect(function()
+
+    if autoLevelEnabled then
+
+        autoLevelEnabled = false
+        activeFarm = nil
+        resetButtons()
+
+    else
+
+        autoLevelEnabled = true
+
+        local target =
+            getAutoBoss()
+
+        if target then
 
             activeFarm =
-                getAutoBoss()
-
-            healTriggered = false
+                target
 
             resetButtons()
 
             autoButton.Text =
-                "AUTO LEVEL FARM [AÇIK]"
+                "AUTO LEVEL: "
+                .. target
+                .. " [AÇIK]"
 
             autoButton.BackgroundColor3 =
                 Color3.fromRGB(60, 30, 90)
@@ -1055,11 +1129,12 @@ autoButton.MouseButton1Click:Connect(
         end
 
     end
-)
 
---========================================================--
--- LEVEL LABEL UPDATE
---========================================================--
+end)
+
+--// =========================================================
+--// AUTO LEVEL KONTROL
+--// =========================================================
 
 task.spawn(function()
 
@@ -1067,58 +1142,53 @@ task.spawn(function()
 
         task.wait(0.5)
 
-        levelLabel.Text =
-            "LV: " ..
-            tostring(getPlayerLevel())
+        pcall(function()
+
+            local level =
+                getPlayerLevel()
+
+            levelLabel.Text =
+                "LV: " .. tostring(level)
+
+            if autoLevelEnabled then
+
+                local target =
+                    getAutoBoss()
+
+                if target
+                    and activeFarm ~= target then
+
+                    activeFarm =
+                        target
+
+                    resetButtons()
+
+                    autoButton.Text =
+                        "AUTO LEVEL: "
+                        .. target
+                        .. " [AÇIK]"
+
+                    autoButton.BackgroundColor3 =
+                        Color3.fromRGB(60, 30, 90)
+
+                    autoButton.TextColor3 =
+                        Color3.fromRGB(255, 255, 255)
+
+                    healTriggered = false
+
+                end
+
+            end
+
+        end)
 
     end
 
 end)
 
---========================================================--
--- AUTO LEVEL CONTROLLER
---========================================================--
-
-task.spawn(function()
-
-    while true do
-
-        task.wait(0.5)
-
-        if autoLevelEnabled then
-
-            local newBoss =
-                getAutoBoss()
-
-            if newBoss ~= activeFarm then
-
-                activeFarm = newBoss
-                healTriggered = false
-
-            end
-
-            if not newBoss then
-
-                autoButton.Text =
-                    "AUTO LEVEL FARM [AÇIK]"
-
-                autoButton.BackgroundColor3 =
-                    Color3.fromRGB(60, 30, 90)
-
-                autoButton.TextColor3 =
-                    Color3.fromRGB(255, 255, 255)
-
-            end
-
-        end
-
-    end
-
-end)
-
---========================================================--
--- ANA FARM
---========================================================--
+--// =========================================================
+--// ANA FARM DÖNGÜSÜ
+--// =========================================================
 
 task.spawn(function()
 
@@ -1142,130 +1212,169 @@ task.spawn(function()
 
             else
 
-                currentlyFarming =
-                    farmName
-
-                --========================================
-                -- PORTALA GİR
-                --========================================
-
-                teleportTo(
+                local portalCFrame =
                     portals[farmName]
-                )
 
-                --========================================
-                -- 5 SANİYE SHIELD
-                --========================================
+                --===========================================
+                -- PORTALA IŞINLAN
+                --===========================================
 
-                local shieldStart =
-                    tick()
+                pcall(function()
 
-                while
-                    activeFarm == farmName
-                    and
-                    tick() - shieldStart < 5
-                do
+                    local character =
+                        player.Character
 
-                    task.wait(0.1)
+                    if character then
 
-                end
+                        local root =
+                            character:FindFirstChild(
+                                "HumanoidRootPart"
+                            )
 
-                --========================================
-                -- FARM
-                --========================================
+                        if root then
 
-                if activeFarm == farmName then
+                            root.AssemblyLinearVelocity =
+                                Vector3.new(0, 0, 0)
 
-                    -- Susportal özel yetenek
-                    if config.special then
-
-                        useSpecialAbility()
-
-                    end
-
-                    --====================================
-                    -- BOSS BEKLE
-                    --====================================
-
-                    local boss =
-                        waitForBoss(
-                            config.bossName
-                        )
-
-                    if boss
-                        and
-                        activeFarm == farmName then
-
-                        --================================
-                        -- AUTO CLICK LOOP
-                        --
-                        -- NORMALDE 1'E BASILMIYOR
-                        --
-                        -- SADECE HEAL'DEN SONRA
-                        -- BOB/SUSPORTAL'DA 1 BASILIYOR.
-                        --================================
-
-                        while
-                            activeFarm == farmName
-                        do
-
-                            -- Auto level threshold değiştiyse
-                            if autoLevelEnabled then
-
-                                local correctBoss =
-                                    getAutoBoss()
-
-                                if correctBoss
-                                    ~= farmName then
-
-                                    break
-
-                                end
-
-                            end
-
-                            -- Boss hâlâ var mı?
-                            local currentBoss =
-                                findBossModel(
-                                    config.bossName
-                                )
-
-                            -- Yoksa boss öldü
-                            if not currentBoss then
-
-                                break
-
-                            end
-
-                            -- Mevcut eldeki kılıçla
-                            -- sadece click gönder
-                            clickCenter()
-
-                            task.wait(0.10)
+                            root.CFrame =
+                                portalCFrame
 
                         end
 
                     end
 
+                end)
+
+                --===========================================
+                -- 5 SANİYE SHIELD
+                --===========================================
+
+                local shieldTime = 0
+
+                while shieldTime < 5
+                    and activeFarm == farmName do
+
+                    task.wait(0.5)
+
+                    shieldTime =
+                        shieldTime + 0.5
+
                 end
 
-                --========================================
-                -- BOSS ÖLDÜ
-                --========================================
+                --===========================================
+                -- SPECIAL
+                --===========================================
+
+                if activeFarm == farmName
+                    and config.special then
+
+                    useSpecialAbility()
+
+                end
+
+                if activeFarm ~= farmName then
+                    continue
+                end
+
+                --===========================================
+                -- GERÇEK BOSS'U BEKLE
+                --===========================================
+
+                local boss =
+                    waitForBoss(
+                        config.bossName
+                    )
+
+                if not boss then
+                    continue
+                end
+
+                --===========================================
+                -- SALDIRI
+                --===========================================
+
+                while activeFarm == farmName do
+
+                    -- Auto Level başka boss'a geçtiyse
+                    if autoLevelEnabled then
+
+                        local newTarget =
+                            getAutoBoss()
+
+                        if newTarget
+                            and newTarget ~= farmName then
+
+                            break
+
+                        end
+
+                    end
+
+                    -- Boss gerçekten hâlâ var mı?
+                    local currentBoss =
+                        findBossModel(
+                            config.bossName
+                        )
+
+                    if not currentBoss then
+
+                        -- Boss öldü
+                        break
+
+                    end
+
+                    -- 📱 KULLANICI DOKUNUYORSA
+                    -- clickCenter hiçbir şey yapmaz.
+                    --
+                    -- Parmağını çekince otomatik
+                    -- olarak yeniden tıklamaya başlar.
+                    clickCenter()
+
+                    task.wait(0.10)
+
+                end
+
+                --===========================================
+                -- BOSS ÖLDÜKTEN SONRA 2 SANİYE
+                --===========================================
 
                 if activeFarm == farmName then
 
                     task.wait(2)
 
-                    teleportTo(
-                        safePosition
-                    )
+                    --=======================================
+                    -- SAFE AREA
+                    --=======================================
+
+                    pcall(function()
+
+                        local character =
+                            player.Character
+
+                        if character then
+
+                            local root =
+                                character:FindFirstChild(
+                                    "HumanoidRootPart"
+                                )
+
+                            if root then
+
+                                root.AssemblyLinearVelocity =
+                                    Vector3.new(0, 0, 0)
+
+                                root.CFrame =
+                                    safePosition
+
+                            end
+
+                        end
+
+                    end)
 
                     task.wait(0.2)
 
                 end
-
-                currentlyFarming = nil
 
             end
 
@@ -1274,3 +1383,34 @@ task.spawn(function()
     end
 
 end)
+
+--// =========================================================
+--// GUI KONTROL / TOUCH BİLGİSİ
+--// =========================================================
+
+task.spawn(function()
+
+    while true do
+
+        task.wait(0.1)
+
+        pcall(function()
+
+            if userTouchingScreen then
+
+                -- Kullanıcı dokunurken GUI'nin
+                -- başlığını değiştirmiyoruz.
+                -- Sadece saldırı duruyor.
+
+            end
+
+        end)
+
+    end
+
+end)
+
+print("⚡ ELITE BOSS HUB MOBILE VERSION LOADED ⚡")
+print("📱 Touch = Auto Click Pause")
+print("🖱️ Touch bırakılınca Auto Click devam eder")
+print("🧹 Eski GUI temizlendi")
