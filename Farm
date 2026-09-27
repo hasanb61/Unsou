@@ -9,27 +9,26 @@ local player = Players.LocalPlayer
 -- PORTALLAR
 --==================================================
 
-local portals = {
-    Undyne = CFrame.new(-2425.2763671875, 533.9141235351562, -589.755859375),
-    Outertale = CFrame.new(-2384.70654296875, 533.9114990234375, -580.0492553710938),
-    Hyperdust = CFrame.new(-2402.91357421875, 533.9037475585938, -574.0745849609375),
-    Bob = CFrame.new(-8358.57, 1256.59, -860.11),
-    OffHead = CFrame.new(-2443.76, 533.91, -442.76),
-    Susportal = CFrame.new(
-        -427.321381,
-        63.8847389,
-        -1285.31506,
-        -0.97381407,
-        2.72724563e-08,
-        0.227345869,
-        4.99589348e-08,
-        1,
-        9.40340641e-08,
-        -0.227345869,
-        1.02929654e-07,
-        -0.97381407
-    )
-}
+local undynePortal = CFrame.new(-2425.2763671875, 533.9141235351562, -589.755859375)
+local outertalePortal = CFrame.new(-2384.70654296875, 533.9114990234375, -580.0492553710938)
+local hyperdustPortal = CFrame.new(-2402.91357421875, 533.9037475585938, -574.0745849609375)
+local bobPortal = CFrame.new(-8358.57, 1256.59, -860.11)
+local offHeadPortal = CFrame.new(-2443.76, 533.91, -442.76)
+
+local susportalPortal = CFrame.new(
+    -427.321381,
+    63.8847389,
+    -1285.31506,
+    -0.97381407,
+    2.72724563e-08,
+    0.227345869,
+    4.99589348e-08,
+    1,
+    9.40340641e-08,
+    -0.227345869,
+    1.02929654e-07,
+    -0.97381407
+)
 
 local safePosition = CFrame.new(
     -1053.02294921875,
@@ -38,57 +37,95 @@ local safePosition = CFrame.new(
 )
 
 --==================================================
--- BOSS AYARLARI
+-- ESKİ GUI TEMİZLE
+--==================================================
+
+pcall(function()
+    for _, guiName in ipairs({
+        "BossFarmUltimateGui",
+        "EliteBossHub",
+        "BossFarmGui"
+    }) do
+
+        local gui1 = player.PlayerGui:FindFirstChild(guiName)
+        if gui1 then
+            gui1:Destroy()
+        end
+
+        local gui2 = game.CoreGui:FindFirstChild(guiName)
+        if gui2 then
+            gui2:Destroy()
+        end
+    end
+end)
+
+--==================================================
+-- FARM CONFIG
 --==================================================
 
 local farmConfigs = {
 
     Undyne = {
+        displayName = "UNDYNE ULTRA",
         bossName = "UndyneULTRA",
+        portal = undynePortal,
         special = true,
         heal = false
     },
 
     Outertale = {
+        displayName = "OUTERTALE SANS",
         bossName = "OuterSans",
+        portal = outertalePortal,
         special = true,
         heal = false
     },
 
     Hyperdust = {
+        displayName = "HYPER DUST",
         bossName = "HyperDT Sans",
+        portal = hyperdustPortal,
         special = true,
         heal = false
     },
 
     Bob = {
+        displayName = "BOB",
         bossName = "Bob",
+        portal = bobPortal,
         special = false,
         heal = true
     },
 
-    -- OFF HEAD = UNDYNE İLE AYNI MANTIK
     OffHead = {
+        displayName = "OFF HEAD",
         bossName = "OOF Head",
+        portal = offHeadPortal,
+
+        -- UNDYNE İLE AYNI
         special = true,
+
         heal = false
     },
 
     Susportal = {
+        displayName = "SUSPORTAL",
         bossName = "Imposter",
+        portal = susportalPortal,
         special = true,
         heal = true
     }
 }
 
 --==================================================
--- DURUMLAR
+-- DURUM
 --==================================================
 
 local activeFarm = nil
 local autoLevel = false
-local userTouchingScreen = false
+
 local activeTouchCount = 0
+local userTouchingScreen = false
 
 local totalKills = 0
 
@@ -102,29 +139,7 @@ local kills = {
 }
 
 local farmStartTime = nil
-local totalFarmSeconds = 0
-
---==================================================
--- ESKİ GUI TEMİZLE
---==================================================
-
-pcall(function()
-    for _, name in ipairs({
-        "BossFarmUltimateGui",
-        "EliteBossHub",
-        "BossFarmGui"
-    }) do
-        local x = player.PlayerGui:FindFirstChild(name)
-        if x then
-            x:Destroy()
-        end
-
-        local y = game.CoreGui:FindFirstChild(name)
-        if y then
-            y:Destroy()
-        end
-    end
-end)
+local totalFarmTime = 0
 
 --==================================================
 -- ANTI AFK
@@ -133,7 +148,9 @@ end)
 task.spawn(function()
 
     player.Idled:Connect(function()
+
         pcall(function()
+
             VirtualUser:Button2Down(
                 Vector2.new(0, 0),
                 workspace.CurrentCamera.CFrame
@@ -145,38 +162,61 @@ task.spawn(function()
                 Vector2.new(0, 0),
                 workspace.CurrentCamera.CFrame
             )
+
         end)
+
     end)
 
     while true do
+
         task.wait(60)
 
         pcall(function()
+
             local cam = workspace.CurrentCamera
 
             if cam then
-                local old = cam.CFrame
+
+                local oldCFrame = cam.CFrame
 
                 cam.CFrame =
-                    old * CFrame.Angles(0, math.rad(0.01), 0)
+                    oldCFrame *
+                    CFrame.Angles(0, math.rad(0.01), 0)
 
                 task.wait(0.1)
 
-                cam.CFrame = old
+                cam.CFrame = oldCFrame
             end
+
         end)
+
     end
 end)
 
 --==================================================
--- TUŞLAR
+-- TUŞ FONKSİYONLARI
 --==================================================
 
 local function pressKey(key)
+
     pcall(function()
-        VIM:SendKeyEvent(true, key, false, game)
+
+        VIM:SendKeyEvent(
+            true,
+            key,
+            false,
+            game
+        )
+
         task.wait(0.05)
-        VIM:SendKeyEvent(false, key, false, game)
+
+        VIM:SendKeyEvent(
+            false,
+            key,
+            false,
+            game
+        )
+
     end)
 end
 
@@ -192,7 +232,6 @@ local function useSpecialAbility()
 
     pcall(function()
 
-        -- 5
         VIM:SendKeyEvent(
             true,
             Enum.KeyCode.Five,
@@ -211,15 +250,18 @@ local function useSpecialAbility()
 
         task.wait(0.2)
 
-        -- Ekranın tam ortasına click
-        local viewport = workspace.CurrentCamera.ViewportSize
+        local viewportSize =
+            workspace.CurrentCamera.ViewportSize
 
-        local x = viewport.X / 2
-        local y = viewport.Y / 2
+        local clickX =
+            viewportSize.X / 2
+
+        local clickY =
+            viewportSize.Y / 2
 
         VIM:SendMouseButtonEvent(
-            x,
-            y,
+            clickX,
+            clickY,
             0,
             true,
             game,
@@ -229,8 +271,8 @@ local function useSpecialAbility()
         task.wait(0.05)
 
         VIM:SendMouseButtonEvent(
-            x,
-            y,
+            clickX,
+            clickY,
             0,
             false,
             game,
@@ -238,6 +280,7 @@ local function useSpecialAbility()
         )
 
         task.wait(0.8)
+
     end)
 end
 
@@ -247,7 +290,8 @@ end
 
 local function findBossModel(bossName)
 
-    local activeBosses = workspace:FindFirstChild("ActiveBosses")
+    local activeBosses =
+        workspace:FindFirstChild("ActiveBosses")
 
     if not activeBosses then
         return nil
@@ -255,19 +299,25 @@ local function findBossModel(bossName)
 
     for _, slot in ipairs(activeBosses:GetChildren()) do
 
-        local bossesFolder = slot:FindFirstChild("Bosses")
+        local bossesFolder =
+            slot:FindFirstChild("Bosses")
 
         if bossesFolder then
 
-            local boss = bossesFolder:FindFirstChild(bossName)
+            local directBoss =
+                bossesFolder:FindFirstChild(bossName)
 
-            if boss and boss:IsA("Model") then
-                return boss
+            if directBoss and directBoss:IsA("Model") then
+                return directBoss
             end
 
-            for _, obj in ipairs(bossesFolder:GetDescendants()) do
+            for _, obj in ipairs(
+                bossesFolder:GetDescendants()
+            ) do
 
-                if obj:IsA("Model") and obj.Name == bossName then
+                if obj:IsA("Model")
+                    and obj.Name == bossName then
+
                     return obj
                 end
 
@@ -279,7 +329,32 @@ local function findBossModel(bossName)
 end
 
 --==================================================
--- MERKEZDEN NORMAL SALDIRI
+-- MOBİL TOUCH
+--==================================================
+
+UIS.TouchStarted:Connect(function()
+
+    activeTouchCount += 1
+    userTouchingScreen = true
+
+end)
+
+UIS.TouchEnded:Connect(function()
+
+    activeTouchCount =
+        math.max(
+            0,
+            activeTouchCount - 1
+        )
+
+    if activeTouchCount == 0 then
+        userTouchingScreen = false
+    end
+
+end)
+
+--==================================================
+-- CENTER CLICK
 --==================================================
 
 local function centerClick()
@@ -290,7 +365,8 @@ local function centerClick()
 
     pcall(function()
 
-        local viewport = workspace.CurrentCamera.ViewportSize
+        local viewport =
+            workspace.CurrentCamera.ViewportSize
 
         local x = viewport.X / 2
         local y = viewport.Y / 2
@@ -317,37 +393,16 @@ local function centerClick()
 end
 
 --==================================================
--- MOBİL DOKUNMA
---==================================================
-
-UIS.TouchStarted:Connect(function()
-    activeTouchCount += 1
-    userTouchingScreen = true
-end)
-
-UIS.TouchEnded:Connect(function()
-
-    activeTouchCount = math.max(
-        0,
-        activeTouchCount - 1
-    )
-
-    if activeTouchCount == 0 then
-        userTouchingScreen = false
-    end
-end)
-
---==================================================
--- CAN OKUMA
+-- HP
 --==================================================
 
 local function getHealthPercent()
 
-    local value
+    local result = nil
 
     pcall(function()
 
-        local hp =
+        local hpDigits =
             player.PlayerGui
             .PlayerMain
             .Dark
@@ -355,22 +410,34 @@ local function getHealthPercent()
             .Health
             .Digits
 
-        local current, max =
-            hp.Text:match("(%d+)[%s/]+(%d+)")
+        if hpDigits and hpDigits:IsA("TextLabel") then
 
-        if current and max then
+            local currentStr, maxStr =
+                hpDigits.Text:match(
+                    "(%d+)[%s/]+(%d+)"
+                )
 
-            current = tonumber(current)
-            max = tonumber(max)
+            if currentStr and maxStr then
 
-            if max and max > 0 then
-                value = (current / max) * 100
+                local currentHp =
+                    tonumber(currentStr)
+
+                local maxHp =
+                    tonumber(maxStr)
+
+                if currentHp
+                    and maxHp
+                    and maxHp > 0 then
+
+                    result =
+                        (currentHp / maxHp) * 100
+                end
             end
         end
 
     end)
 
-    return value
+    return result
 end
 
 --==================================================
@@ -378,7 +445,7 @@ end
 --==================================================
 
 local healing = false
-local healArmed = true
+local healReady = true
 
 local function doHeal()
 
@@ -394,14 +461,18 @@ local function doHeal()
 
         task.wait(0.05)
 
-        local viewport = workspace.CurrentCamera.ViewportSize
+        local viewport =
+            workspace.CurrentCamera.ViewportSize
 
-        local x = viewport.X / 2
-        local y = viewport.Y - 100
+        local clickX =
+            viewport.X / 2
+
+        local clickY =
+            viewport.Y - 100
 
         VIM:SendMouseButtonEvent(
-            x,
-            y,
+            clickX,
+            clickY,
             0,
             true,
             game,
@@ -411,8 +482,8 @@ local function doHeal()
         task.wait(0.05)
 
         VIM:SendMouseButtonEvent(
-            x,
-            y,
+            clickX,
+            clickY,
             0,
             false,
             game,
@@ -424,6 +495,7 @@ local function doHeal()
         equipSword()
 
         task.wait(3.5)
+
     end)
 
     healing = false
@@ -441,24 +513,28 @@ task.spawn(function()
 
         if activeFarm then
 
-            local config = farmConfigs[activeFarm]
+            local config =
+                farmConfigs[activeFarm]
 
             if config and config.heal then
 
-                local hp = getHealthPercent()
+                local hp =
+                    getHealthPercent()
 
                 if hp then
 
                     if hp <= 30 then
 
-                        if healArmed then
-                            healArmed = false
+                        if healReady then
+
+                            healReady = false
+
                             doHeal()
                         end
 
                     elseif hp > 30 then
 
-                        healArmed = true
+                        healReady = true
                     end
                 end
             end
@@ -472,7 +548,7 @@ end)
 
 local function getLevel()
 
-    local result
+    local result = 0
 
     pcall(function()
 
@@ -485,16 +561,18 @@ local function getLevel()
                 leaderstats:FindFirstChild("LV")
 
             if lv then
-                result = tonumber(lv.Value)
+                result =
+                    tonumber(lv.Value) or 0
             end
         end
+
     end)
 
-    return result or 0
+    return result
 end
 
 --==================================================
--- LEVEL → BOSS
+-- AUTO LEVEL BOSS SEÇİMİ
 --==================================================
 
 local function getBossForLevel(level)
@@ -522,360 +600,660 @@ local function getBossForLevel(level)
 end
 
 --==================================================
--- KILL SAYACI
---==================================================
-
-local function registerKill(farmName)
-
-    totalKills += 1
-
-    if kills[farmName] then
-        kills[farmName] += 1
-    end
-end
-
---==================================================
--- GÜVENLİ NOKTA
---==================================================
-
-local function goSafe()
-
-    pcall(function()
-
-        local char = player.Character
-        local root =
-            char and char:FindFirstChild("HumanoidRootPart")
-
-        if root then
-
-            root.AssemblyLinearVelocity =
-                Vector3.new(0, 0, 0)
-
-            root.CFrame = safePosition
-        end
-    end)
-end
-
---==================================================
--- BOSS FARM
---==================================================
-
-local function runBoss(farmName)
-
-    local config = farmConfigs[farmName]
-
-    if not config then
-        return
-    end
-
-    local portal = portals[farmName]
-
-    if not portal then
-        return
-    end
-
-    --==============================================
-    -- PORTALA GİT
-    --==============================================
-
-    pcall(function()
-
-        local char = player.Character
-        local root =
-            char and char:FindFirstChild("HumanoidRootPart")
-
-        if root then
-
-            root.AssemblyLinearVelocity =
-                Vector3.new(0, 0, 0)
-
-            root.CFrame = portal
-        end
-    end)
-
-    --==============================================
-    -- 6 SANİYE SHIELD
-    --==============================================
-
-    for i = 1, 12 do
-
-        if activeFarm ~= farmName then
-            return
-        end
-
-        task.wait(0.5)
-    end
-
-    if activeFarm ~= farmName then
-        return
-    end
-
-    --==============================================
-    -- BOSSU ÖNCEDEN AL
-    --==============================================
-
-    local bossBeforeSpecial =
-        findBossModel(config.bossName)
-
-    --==============================================
-    -- UNDYNE İLE AYNI MANTIK
-    -- 5 → 1 → NORMAL ATAK
-    --==============================================
-
-    if config.special then
-
-        useSpecialAbility()
-
-        if activeFarm ~= farmName then
-            return
-        end
-
-        -- Özel yetenekten sonra MUTLAKA 1
-        equipSword()
-
-        task.wait(0.15)
-    else
-
-        -- Bob gibi 5 kullanmayanlar
-        equipSword()
-    end
-
-    --==============================================
-    -- 5 BOSSU TEK BAŞINA ÖLDÜRDÜYSE
-    --==============================================
-
-    if bossBeforeSpecial then
-
-        if not findBossModel(config.bossName) then
-
-            registerKill(farmName)
-
-            task.wait(2)
-
-            goSafe()
-
-            return
-        end
-    end
-
-    --==============================================
-    -- BOSSUN ORTAYA ÇIKMASINI BEKLE
-    --==============================================
-
-    local boss = findBossModel(config.bossName)
-
-    local waitStart = tick()
-
-    while not boss
-        and activeFarm == farmName
-        and tick() - waitStart < 60 do
-
-        task.wait(0.15)
-
-        boss = findBossModel(config.bossName)
-    end
-
-    if activeFarm ~= farmName then
-        return
-    end
-
-    --==============================================
-    -- BOSS GERÇEKTEN VARSA AUTO CLICK
-    --==============================================
-
-    local lastAttack = 0
-
-    while activeFarm == farmName do
-
-        boss = findBossModel(config.bossName)
-
-        -- MODEL YOKSA = GERÇEK BOSS ÖLDÜ
-        if not boss then
-
-            registerKill(farmName)
-
-            task.wait(2)
-
-            goSafe()
-
-            return
-        end
-
-        -- Normal saldırı
-        if tick() - lastAttack >= 0.10 then
-
-            centerClick()
-
-            lastAttack = tick()
-        end
-
-        task.wait(0.03)
-    end
-end
-
---==================================================
 -- GUI
 --==================================================
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "BossFarmUltimateGui"
-gui.ResetOnSpawn = false
-gui.Parent = player.PlayerGui
+local screenGui =
+    Instance.new("ScreenGui")
 
-local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 560, 0, 310)
-main.Position = UDim2.new(0.5, -280, 0.5, -155)
-main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-main.BorderSizePixel = 0
-main.Active = true
-main.Draggable = true
-main.Parent = gui
+screenGui.Name =
+    "BossFarmUltimateGui"
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 16)
-corner.Parent = main
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player.PlayerGui
 
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(55, 55, 70)
-stroke.Thickness = 1.5
-stroke.Parent = main
+-- ANA PANEL
+local frame =
+    Instance.new("Frame")
 
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 45)
-title.BackgroundTransparency = 1
-title.Text = "⚡ ELITE BOSS HUB"
-title.TextColor3 = Color3.new(1,1,1)
+frame.Size =
+    UDim2.new(0, 590, 0, 390)
+
+frame.Position =
+    UDim2.new(0.5, -295, 0.08, 0)
+
+frame.BackgroundColor3 =
+    Color3.fromRGB(15, 15, 18)
+
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+local frameCorner =
+    Instance.new("UICorner")
+
+frameCorner.CornerRadius =
+    UDim.new(0, 16)
+
+frameCorner.Parent = frame
+
+local frameStroke =
+    Instance.new("UIStroke")
+
+frameStroke.Color =
+    Color3.fromRGB(45, 45, 55)
+
+frameStroke.Thickness = 1.5
+frameStroke.Parent = frame
+
+--==================================================
+-- BAŞLIK
+--==================================================
+
+local title =
+    Instance.new("TextLabel")
+
+title.Size =
+    UDim2.new(1, 0, 0, 48)
+
+title.BackgroundColor3 =
+    Color3.fromRGB(22, 22, 28)
+
+title.TextColor3 =
+    Color3.fromRGB(255, 255, 255)
+
+title.Text =
+    "⚡ ELITE BOSS HUB ⚡"
+
+title.TextSize = 15
 title.Font = Enum.Font.GothamBold
-title.TextSize = 16
-title.Parent = main
+title.Parent = frame
+
+local titleCorner =
+    Instance.new("UICorner")
+
+titleCorner.CornerRadius =
+    UDim.new(0, 16)
+
+titleCorner.Parent = title
+
+local titleCover =
+    Instance.new("Frame")
+
+titleCover.Size =
+    UDim2.new(1, 0, 0, 12)
+
+titleCover.Position =
+    UDim2.new(0, 0, 1, -12)
+
+titleCover.BackgroundColor3 =
+    Color3.fromRGB(22, 22, 28)
+
+titleCover.BorderSizePixel = 0
+titleCover.Parent = title
 
 --==================================================
--- BUTONLAR
+-- SAYFA BUTONLARI
 --==================================================
+
+local farmPageButton =
+    Instance.new("TextButton")
+
+farmPageButton.Size =
+    UDim2.new(0, 130, 0, 32)
+
+farmPageButton.Position =
+    UDim2.new(0, 15, 0, 58)
+
+farmPageButton.BackgroundColor3 =
+    Color3.fromRGB(65, 30, 95)
+
+farmPageButton.Text =
+    "AUTO FARM"
+
+farmPageButton.TextColor3 =
+    Color3.new(1, 1, 1)
+
+farmPageButton.TextSize = 11
+farmPageButton.Font =
+    Enum.Font.GothamBold
+
+farmPageButton.Parent = frame
+
+local farmPageCorner =
+    Instance.new("UICorner")
+
+farmPageCorner.CornerRadius =
+    UDim.new(0, 8)
+
+farmPageCorner.Parent =
+    farmPageButton
+
+local settingsPageButton =
+    Instance.new("TextButton")
+
+settingsPageButton.Size =
+    UDim2.new(0, 130, 0, 32)
+
+settingsPageButton.Position =
+    UDim2.new(0, 155, 0, 58)
+
+settingsPageButton.BackgroundColor3 =
+    Color3.fromRGB(27, 27, 34)
+
+settingsPageButton.Text =
+    "AYARLAR"
+
+settingsPageButton.TextColor3 =
+    Color3.fromRGB(180, 180, 190)
+
+settingsPageButton.TextSize = 11
+settingsPageButton.Font =
+    Enum.Font.GothamBold
+
+settingsPageButton.Parent = frame
+
+local settingsPageCorner =
+    Instance.new("UICorner")
+
+settingsPageCorner.CornerRadius =
+    UDim.new(0, 8)
+
+settingsPageCorner.Parent =
+    settingsPageButton
+
+--==================================================
+-- FARM CONTAINER
+--==================================================
+
+local farmContainer =
+    Instance.new("Frame")
+
+farmContainer.Size =
+    UDim2.new(1, -30, 1, -105)
+
+farmContainer.Position =
+    UDim2.new(0, 15, 0, 100)
+
+farmContainer.BackgroundTransparency = 1
+farmContainer.Parent = frame
+
+--==================================================
+-- BOSS BUTTON RENKLERİ
+--==================================================
+
+local OFF_COLOR =
+    Color3.fromRGB(25, 25, 32)
+
+local OFF_TEXT =
+    Color3.fromRGB(180, 180, 190)
+
+local ON_COLOR =
+    Color3.fromRGB(65, 30, 95)
+
+local ON_TEXT =
+    Color3.fromRGB(255, 255, 255)
 
 local bossButtons = {}
 
-local names = {
-    {"Undyne", "UNDYNE ULTRA"},
-    {"Outertale", "OUTERTALE SANS"},
-    {"Hyperdust", "HYPER DUST"},
-    {"Bob", "BOB + HEAL"},
-    {"OffHead", "OFF HEAD"},
-    {"Susportal", "SUSPORTAL + HEAL"}
+local bossOrder = {
+    "Undyne",
+    "Outertale",
+    "Hyperdust",
+    "Bob",
+    "OffHead",
+    "Susportal"
 }
 
-local function makeBossButton(key, text, x, y)
+local buttonPositions = {
+    Undyne = {0, 0},
+    Outertale = {180, 0},
+    Hyperdust = {360, 0},
 
-    local btn = Instance.new("TextButton")
+    Bob = {0, 52},
+    OffHead = {180, 52},
+    Susportal = {360, 52}
+}
 
-    btn.Size = UDim2.new(0, 165, 0, 38)
-    btn.Position = UDim2.new(0, x, 0, y)
+--==================================================
+-- BUTON TEXT DURUMU
+--==================================================
 
-    btn.BackgroundColor3 =
-        Color3.fromRGB(27, 27, 35)
+local function setButtonState(
+    farmName,
+    isOn
+)
 
-    btn.TextColor3 =
-        Color3.fromRGB(210, 210, 220)
+    local button =
+        bossButtons[farmName]
 
-    btn.Text = text .. " [KAPALI]"
-    btn.TextSize = 11
-    btn.Font = Enum.Font.GothamBold
-    btn.BorderSizePixel = 0
-    btn.Parent = main
+    if not button then
+        return
+    end
 
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 9)
-    c.Parent = btn
+    local config =
+        farmConfigs[farmName]
 
-    bossButtons[key] = btn
+    if isOn then
 
-    btn.MouseButton1Click:Connect(function()
+        button.Text =
+            config.displayName ..
+            " [AÇIK]"
+
+        button.BackgroundColor3 =
+            ON_COLOR
+
+        button.TextColor3 =
+            ON_TEXT
+
+    else
+
+        button.Text =
+            config.displayName ..
+            " [KAPALI]"
+
+        button.BackgroundColor3 =
+            OFF_COLOR
+
+        button.TextColor3 =
+            OFF_TEXT
+    end
+end
+
+--==================================================
+-- TÜM BUTONLARI RESET
+--==================================================
+
+local function resetBossButtons()
+
+    for _, farmName in ipairs(bossOrder) do
+        setButtonState(
+            farmName,
+            false
+        )
+    end
+end
+
+--==================================================
+-- BOSS AKTİFLEŞTİR
+--==================================================
+
+local function activateFarm(farmName)
+
+    autoLevel = false
+
+    if activeFarm == farmName then
+
+        if farmStartTime then
+
+            totalFarmTime +=
+                tick() - farmStartTime
+        end
+
+        activeFarm = nil
+        farmStartTime = nil
+
+        resetBossButtons()
+
+        return
+    end
+
+    if farmStartTime then
+
+        totalFarmTime +=
+            tick() - farmStartTime
+    end
+
+    activeFarm = farmName
+    farmStartTime = tick()
+
+    resetBossButtons()
+
+    setButtonState(
+        farmName,
+        true
+    )
+end
+
+--==================================================
+-- BOSS BUTONLARI
+--==================================================
+
+for _, farmName in ipairs(bossOrder) do
+
+    local config =
+        farmConfigs[farmName]
+
+    local pos =
+        buttonPositions[farmName]
+
+    local button =
+        Instance.new("TextButton")
+
+    button.Size =
+        UDim2.new(0, 165, 0, 42)
+
+    button.Position =
+        UDim2.new(
+            0,
+            pos[1],
+            0,
+            pos[2]
+        )
+
+    button.BackgroundColor3 =
+        OFF_COLOR
+
+    button.TextColor3 =
+        OFF_TEXT
+
+    button.Text =
+        config.displayName ..
+        " [KAPALI]"
+
+    button.TextSize = 10
+    button.Font = Enum.Font.GothamBold
+
+    button.BorderSizePixel = 0
+    button.Parent = farmContainer
+
+    local corner =
+        Instance.new("UICorner")
+
+    corner.CornerRadius =
+        UDim.new(0, 10)
+
+    corner.Parent = button
+
+    local stroke =
+        Instance.new("UIStroke")
+
+    stroke.Color =
+        Color3.fromRGB(40, 40, 50)
+
+    stroke.Thickness = 1
+    stroke.Parent = button
+
+    bossButtons[farmName] =
+        button
+
+    button.MouseButton1Click:Connect(function()
+        activateFarm(farmName)
+    end)
+end
+
+--==================================================
+-- AUTO LEVEL BUTONU
+--==================================================
+
+local autoLevelButton =
+    Instance.new("TextButton")
+
+autoLevelButton.Size =
+    UDim2.new(0, 165, 0, 42)
+
+autoLevelButton.Position =
+    UDim2.new(0, 0, 0, 104)
+
+autoLevelButton.BackgroundColor3 =
+    OFF_COLOR
+
+autoLevelButton.TextColor3 =
+    OFF_TEXT
+
+autoLevelButton.Text =
+    "AUTO LEVEL [KAPALI]"
+
+autoLevelButton.TextSize = 10
+autoLevelButton.Font =
+    Enum.Font.GothamBold
+
+autoLevelButton.BorderSizePixel = 0
+autoLevelButton.Parent = farmContainer
+
+local autoLevelCorner =
+    Instance.new("UICorner")
+
+autoLevelCorner.CornerRadius =
+    UDim.new(0, 10)
+
+autoLevelCorner.Parent =
+    autoLevelButton
+
+local function setAutoLevelState(on)
+
+    if on then
+
+        autoLevelButton.Text =
+            "AUTO LEVEL [AÇIK]"
+
+        autoLevelButton.BackgroundColor3 =
+            ON_COLOR
+
+        autoLevelButton.TextColor3 =
+            ON_TEXT
+
+    else
+
+        autoLevelButton.Text =
+            "AUTO LEVEL [KAPALI]"
+
+        autoLevelButton.BackgroundColor3 =
+            OFF_COLOR
+
+        autoLevelButton.TextColor3 =
+            OFF_TEXT
+    end
+end
+
+autoLevelButton.MouseButton1Click:Connect(function()
+
+    if autoLevel then
 
         autoLevel = false
 
-        if activeFarm == key then
+        if farmStartTime then
+            totalFarmTime +=
+                tick() - farmStartTime
+        end
 
-            activeFarm = nil
+        activeFarm = nil
+        farmStartTime = nil
 
-        else
+        resetBossButtons()
+        setAutoLevelState(false)
 
-            activeFarm = key
+    else
+
+        autoLevel = true
+
+        setAutoLevelState(true)
+
+        local target =
+            getBossForLevel(
+                getLevel()
+            )
+
+        if target then
+
+            activeFarm = target
             farmStartTime = tick()
+
+            resetBossButtons()
+
+            setButtonState(
+                target,
+                true
+            )
         end
-
-        for name, b in pairs(bossButtons) do
-
-            if name == activeFarm then
-
-                b.Text =
-                    names[
-                        table.find(
-                            names,
-                            {name, b.Text}
-                        ) or 1
-                    ]
-
-                b.BackgroundColor3 =
-                    Color3.fromRGB(65, 35, 95)
-
-            else
-
-                b.BackgroundColor3 =
-                    Color3.fromRGB(27, 27, 35)
-            end
-        end
-    end)
-
-    return btn
-end
-
-makeBossButton("Undyne", "UNDYNE ULTRA", 20, 60)
-makeBossButton("Outertale", "OUTERTALE SANS", 195, 60)
-makeBossButton("Hyperdust", "HYPER DUST", 370, 60)
-
-makeBossButton("Bob", "BOB + HEAL", 20, 108)
-makeBossButton("OffHead", "OFF HEAD", 195, 108)
-makeBossButton("Susportal", "SUSPORTAL + HEAL", 370, 108)
+    end
+end)
 
 --==================================================
--- STATLAR
+-- FARM BİLGİ YAZISI
 --==================================================
 
-local stats = Instance.new("TextLabel")
-stats.Size = UDim2.new(0, 520, 0, 115)
-stats.Position = UDim2.new(0, 20, 0, 160)
-stats.BackgroundColor3 = Color3.fromRGB(21, 21, 28)
-stats.TextColor3 = Color3.fromRGB(220, 220, 230)
-stats.TextSize = 11
-stats.Font = Enum.Font.GothamSemibold
-stats.TextXAlignment = Enum.TextXAlignment.Left
-stats.TextYAlignment = Enum.TextYAlignment.Top
-stats.Text = ""
-stats.Parent = main
+local farmInfo =
+    Instance.new("TextLabel")
 
-local statsCorner = Instance.new("UICorner")
-statsCorner.CornerRadius = UDim.new(0, 10)
-statsCorner.Parent = stats
+farmInfo.Size =
+    UDim2.new(0, 345, 0, 42)
+
+farmInfo.Position =
+    UDim2.new(0, 180, 0, 104)
+
+farmInfo.BackgroundColor3 =
+    Color3.fromRGB(21, 21, 27)
+
+farmInfo.TextColor3 =
+    Color3.fromRGB(175, 175, 185)
+
+farmInfo.Text =
+    "Farm kapalı"
+
+farmInfo.TextSize = 10
+farmInfo.Font =
+    Enum.Font.GothamSemibold
+
+farmInfo.TextWrapped = true
+farmInfo.Parent = farmContainer
+
+local farmInfoCorner =
+    Instance.new("UICorner")
+
+farmInfoCorner.CornerRadius =
+    UDim.new(0, 10)
+
+farmInfoCorner.Parent =
+    farmInfo
 
 --==================================================
--- STAT GÜNCELLE
+-- SETTINGS SAYFASI
+--==================================================
+
+local settingsContainer =
+    Instance.new("Frame")
+
+settingsContainer.Size =
+    UDim2.new(1, -30, 1, -105)
+
+settingsContainer.Position =
+    UDim2.new(0, 15, 0, 100)
+
+settingsContainer.BackgroundTransparency = 1
+settingsContainer.Visible = false
+settingsContainer.Parent = frame
+
+local settingsStats =
+    Instance.new("TextLabel")
+
+settingsStats.Size =
+    UDim2.new(1, 0, 0, 220)
+
+settingsStats.Position =
+    UDim2.new(0, 0, 0, 0)
+
+settingsStats.BackgroundColor3 =
+    Color3.fromRGB(21, 21, 27)
+
+settingsStats.TextColor3 =
+    Color3.fromRGB(220, 220, 230)
+
+settingsStats.TextSize = 12
+settingsStats.Font =
+    Enum.Font.GothamSemibold
+
+settingsStats.TextXAlignment =
+    Enum.TextXAlignment.Left
+
+settingsStats.TextYAlignment =
+    Enum.TextYAlignment.Top
+
+settingsStats.TextWrapped = true
+settingsStats.Parent =
+    settingsContainer
+
+local settingsCorner =
+    Instance.new("UICorner")
+
+settingsCorner.CornerRadius =
+    UDim.new(0, 12)
+
+settingsCorner.Parent =
+    settingsStats
+
+--==================================================
+-- SAYFA DEĞİŞTİRME
+--==================================================
+
+farmPageButton.MouseButton1Click:Connect(function()
+
+    farmContainer.Visible = true
+    settingsContainer.Visible = false
+
+    farmPageButton.BackgroundColor3 =
+        ON_COLOR
+
+    farmPageButton.TextColor3 =
+        ON_TEXT
+
+    settingsPageButton.BackgroundColor3 =
+        OFF_COLOR
+
+    settingsPageButton.TextColor3 =
+        OFF_TEXT
+end)
+
+settingsPageButton.MouseButton1Click:Connect(function()
+
+    farmContainer.Visible = false
+    settingsContainer.Visible = true
+
+    settingsPageButton.BackgroundColor3 =
+        ON_COLOR
+
+    settingsPageButton.TextColor3 =
+        ON_TEXT
+
+    farmPageButton.BackgroundColor3 =
+        OFF_COLOR
+
+    farmPageButton.TextColor3 =
+        OFF_TEXT
+end)
+
+--==================================================
+-- FORMAT TIME
 --==================================================
 
 local function formatTime(seconds)
 
-    seconds = math.floor(seconds)
+    seconds =
+        math.floor(seconds)
 
-    local h = math.floor(seconds / 3600)
-    local m = math.floor((seconds % 3600) / 60)
-    local s = seconds % 60
+    local hours =
+        math.floor(seconds / 3600)
+
+    local minutes =
+        math.floor(
+            (seconds % 3600) / 60
+        )
+
+    local secs =
+        seconds % 60
 
     return string.format(
         "%02d:%02d:%02d",
-        h,
-        m,
-        s
+        hours,
+        minutes,
+        secs
     )
 end
+
+--==================================================
+-- GUI LIVE STATS
+--==================================================
 
 task.spawn(function()
 
@@ -883,51 +1261,98 @@ task.spawn(function()
 
         task.wait(0.25)
 
-        local farmTime = totalFarmSeconds
+        local currentFarmTime =
+            totalFarmTime
 
         if activeFarm and farmStartTime then
-            farmTime += tick() - farmStartTime
+
+            currentFarmTime +=
+                tick() - farmStartTime
         end
 
-        local level = getLevel()
+        local level =
+            getLevel()
 
         local gold = 0
 
         pcall(function()
 
-            local ls =
-                player:FindFirstChild("leaderstats")
+            local leaderstats =
+                player:FindFirstChild(
+                    "leaderstats"
+                )
 
-            if ls then
+            if leaderstats then
 
-                local g =
-                    ls:FindFirstChild("Gold")
+                local goldValue =
+                    leaderstats:FindFirstChild(
+                        "Gold"
+                    )
 
-                if g then
-                    gold = tonumber(g.Value) or 0
+                if goldValue then
+
+                    gold =
+                        tonumber(
+                            goldValue.Value
+                        ) or 0
                 end
             end
+
         end)
 
-        stats.Text =
-            "  LEVEL: " .. level ..
-            "        GOLD: " .. gold .. "\n\n" ..
+        if activeFarm then
 
-            "  TOTAL KILL: " .. totalKills ..
-            "        FARM TIME: " .. formatTime(farmTime) .. "\n\n" ..
+            farmInfo.Text =
+                "● AKTİF: " ..
+                farmConfigs[
+                    activeFarm
+                ].displayName
 
-            "  Undyne: " .. kills.Undyne ..
-            "    Outertale: " .. kills.Outertale ..
-            "    Hyperdust: " .. kills.Hyperdust .. "\n" ..
+        else
 
-            "  Bob: " .. kills.Bob ..
-            "    Off Head: " .. kills.OffHead ..
-            "    Susportal: " .. kills.Susportal
+            farmInfo.Text =
+                "Farm kapalı"
+        end
+
+        settingsStats.Text =
+            "   LIVE STATS\n\n" ..
+
+            "   LEVEL: " ..
+            tostring(level) ..
+
+            "\n   GOLD: " ..
+            tostring(gold) ..
+
+            "\n\n   TOTAL BOSS KILL: " ..
+            tostring(totalKills) ..
+
+            "\n\n   UNDYNЕ: " ..
+            tostring(kills.Undyne) ..
+
+            "        OUTERTALE: " ..
+            tostring(kills.Outertale) ..
+
+            "\n   HYPERDUST: " ..
+            tostring(kills.Hyperdust) ..
+
+            "        BOB: " ..
+            tostring(kills.Bob) ..
+
+            "\n   OFF HEAD: " ..
+            tostring(kills.OffHead) ..
+
+            "        SUSPORTAL: " ..
+            tostring(kills.Susportal) ..
+
+            "\n\n   TOTAL AUTO FARM TIME: " ..
+            formatTime(
+                currentFarmTime
+            )
     end
 end)
 
 --==================================================
--- AUTO LEVEL
+-- AUTO LEVEL LOOP
 --==================================================
 
 task.spawn(function()
@@ -938,17 +1363,256 @@ task.spawn(function()
 
         if autoLevel then
 
-            local level = getLevel()
-            local target = getBossForLevel(level)
+            local level =
+                getLevel()
 
-            if target and target ~= activeFarm then
+            local target =
+                getBossForLevel(level)
+
+            if target
+                and target ~= activeFarm then
+
+                if farmStartTime then
+
+                    totalFarmTime +=
+                        tick() - farmStartTime
+                end
 
                 activeFarm = target
                 farmStartTime = tick()
+
+                resetBossButtons()
+
+                setButtonState(
+                    target,
+                    true
+                )
             end
         end
     end
 end)
+
+--==================================================
+-- KILL KAYDET
+--==================================================
+
+local function registerKill(farmName)
+
+    totalKills += 1
+
+    if kills[farmName] ~= nil then
+        kills[farmName] += 1
+    end
+end
+
+--==================================================
+-- SAFE
+--==================================================
+
+local function goSafe()
+
+    pcall(function()
+
+        local char =
+            player.Character
+
+        local root =
+            char and
+            char:FindFirstChild(
+                "HumanoidRootPart"
+            )
+
+        if root then
+
+            root.AssemblyLinearVelocity =
+                Vector3.new(0, 0, 0)
+
+            root.CFrame =
+                safePosition
+        end
+    end)
+end
+
+--==================================================
+-- BOSS FARM
+--==================================================
+
+local function runBoss(
+    farmName
+)
+
+    local config =
+        farmConfigs[farmName]
+
+    if not config then
+        return
+    end
+
+    --==============================================
+    -- PORTALA GİT
+    --==============================================
+
+    pcall(function()
+
+        local char =
+            player.Character
+
+        local root =
+            char and
+            char:FindFirstChild(
+                "HumanoidRootPart"
+            )
+
+        if root then
+
+            root.AssemblyLinearVelocity =
+                Vector3.new(0, 0, 0)
+
+            root.CFrame =
+                config.portal
+        end
+    end)
+
+    --==============================================
+    -- 6 SANİYE SHIELD
+    --==============================================
+
+    local shieldTime = 0
+
+    while shieldTime < 6 do
+
+        if activeFarm ~= farmName then
+            return
+        end
+
+        task.wait(0.5)
+
+        shieldTime += 0.5
+    end
+
+    if activeFarm ~= farmName then
+        return
+    end
+
+    --==============================================
+    -- BOSS SNAPSHOT
+    --==============================================
+
+    local bossBeforeSpecial =
+        findBossModel(
+            config.bossName
+        )
+
+    --==============================================
+    -- UNDYNE MANTIĞI
+    -- 5 → 1 → CENTER CLICK
+    --==============================================
+
+    if config.special then
+
+        useSpecialAbility()
+
+        if activeFarm ~= farmName then
+            return
+        end
+
+        -- 5 SONRASI HER ZAMAN 1
+        equipSword()
+
+        task.wait(0.15)
+
+    else
+
+        equipSword()
+    end
+
+    --==============================================
+    -- 5 TEK BAŞINA ÖLDÜRDÜYSE
+    --==============================================
+
+    if bossBeforeSpecial then
+
+        if not findBossModel(
+            config.bossName
+        ) then
+
+            registerKill(
+                farmName
+            )
+
+            task.wait(2)
+
+            goSafe()
+
+            return
+        end
+    end
+
+    --==============================================
+    -- GERÇEK BOSSU BEKLE
+    --==============================================
+
+    local boss =
+        findBossModel(
+            config.bossName
+        )
+
+    local searchStart =
+        tick()
+
+    while not boss
+        and activeFarm == farmName
+        and tick() - searchStart < 60 do
+
+        task.wait(0.15)
+
+        boss =
+            findBossModel(
+                config.bossName
+            )
+    end
+
+    if activeFarm ~= farmName then
+        return
+    end
+
+    --==============================================
+    -- NORMAL AUTO CLICK
+    --==============================================
+
+    local lastClick = 0
+
+    while activeFarm == farmName do
+
+        boss =
+            findBossModel(
+                config.bossName
+            )
+
+        -- GERÇEK MODEL YOKSA BOSS ÖLDÜ
+        if not boss then
+
+            registerKill(
+                farmName
+            )
+
+            task.wait(2)
+
+            goSafe()
+
+            return
+        end
+
+        if tick() - lastClick >= 0.10 then
+
+            centerClick()
+
+            lastClick = tick()
+        end
+
+        task.wait(0.03)
+    end
+end
 
 --==================================================
 -- ANA FARM LOOP
@@ -960,20 +1624,27 @@ task.spawn(function()
 
         if activeFarm then
 
-            local currentFarm = activeFarm
+            local selectedFarm =
+                activeFarm
 
-            runBoss(currentFarm)
+            runBoss(
+                selectedFarm
+            )
 
-            if activeFarm == currentFarm then
+            -- Farm hâlâ aynıysa
+            -- sonraki cycle'a geç
+            if activeFarm ==
+                selectedFarm then
 
                 if farmStartTime then
 
-                    totalFarmSeconds +=
-                        tick() - farmStartTime
-
+                    totalFarmTime +=
+                        tick() -
+                        farmStartTime
                 end
 
-                farmStartTime = tick()
+                farmStartTime =
+                    tick()
 
                 task.wait(0.5)
             end
