@@ -193,93 +193,72 @@ task.spawn(function()
 end)
 
 --==================================================
--- TUŞ FONKSİYONLARI
+-- YENİ GELİŞMİŞ EŞYA & YETENEK KULLANIMI
 --==================================================
 
 local function pressKey(key)
-
     pcall(function()
-
-        VIM:SendKeyEvent(
-            true,
-            key,
-            false,
-            game
-        )
-
+        VIM:SendKeyEvent(true, key, false, game)
         task.wait(0.05)
+        VIM:SendKeyEvent(false, key, false, game)
+    end)
+end
 
-        VIM:SendKeyEvent(
-            false,
-            key,
-            false,
-            game
-        )
-
+-- Doğrudan Backpack içindeki slot indeksine veya Tool'a göre kuşanma
+local function equipSlot(slotIndex)
+    pcall(function()
+        local char = player.Character
+        if not char then return end
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        local backpack = player:FindFirstChild("Backpack")
+        
+        if backpack and humanoid then
+            local tools = backpack:GetChildren()
+            if tools[slotIndex] and tools[slotIndex]:IsA("Tool") then
+                humanoid:EquipTool(tools[slotIndex])
+            else
+                -- İkinci yöntem: Tuş simülasyonu
+                local key = Enum.KeyCode.One
+                if slotIndex == 5 then key = Enum.KeyCode.Five
+                elseif slotIndex == 3 then key = Enum.KeyCode.Three
+                end
+                pressKey(key)
+            end
+        end
     end)
 end
 
 local function equipSword()
-    pressKey(Enum.KeyCode.One)
+    equipSlot(1)
 end
 
---==================================================
--- 5 ÖZEL YETENEK
---==================================================
-
 local function useSpecialAbility()
-
     pcall(function()
+        -- 1. Yöntem: 5. Slottaki yeteneği çantadan kuşan ve çalıştır
+        equipSlot(5)
+        task.wait(0.1)
 
-        VIM:SendKeyEvent(
-            true,
-            Enum.KeyCode.Five,
-            false,
-            game
-        )
+        local char = player.Character
+        if char then
+            local tool = char:FindFirstChildOfClass("Tool")
+            if tool then
+                tool:Activate()
+            end
+        end
 
+        -- 2. Yöntem: Tuş ve Tıklama Simülasyonu (Yedek)
+        pressKey(Enum.KeyCode.Five)
+        task.wait(0.1)
+
+        local viewportSize = workspace.CurrentCamera.ViewportSize
+        local clickX = viewportSize.X / 2
+        local clickY = viewportSize.Y / 2
+
+        VIM:SendMouseButtonEvent(clickX, clickY, 0, true, game, 1)
         task.wait(0.05)
+        VIM:SendMouseButtonEvent(clickX, clickY, 0, false, game, 1)
 
-        VIM:SendKeyEvent(
-            false,
-            Enum.KeyCode.Five,
-            false,
-            game
-        )
-
-        task.wait(0.2)
-
-        local viewportSize =
-            workspace.CurrentCamera.ViewportSize
-
-        local clickX =
-            viewportSize.X / 2
-
-        local clickY =
-            viewportSize.Y / 2
-
-        VIM:SendMouseButtonEvent(
-            clickX,
-            clickY,
-            0,
-            true,
-            game,
-            1
-        )
-
-        task.wait(0.05)
-
-        VIM:SendMouseButtonEvent(
-            clickX,
-            clickY,
-            0,
-            false,
-            game,
-            1
-        )
-
-        task.wait(0.8)
-
+        task.wait(0.6)
     end)
 end
 
@@ -356,7 +335,7 @@ UIS.TouchEnded:Connect(function()
 end)
 
 --==================================================
--- CENTER CLICK
+-- CENTER CLICK (GELİŞTİRİLDİ)
 --==================================================
 
 local function centerClick()
@@ -366,31 +345,22 @@ local function centerClick()
     end
 
     pcall(function()
+        -- Çantadaki kılıcın doğrudan Activate edilmesi
+        local char = player.Character
+        if char then
+            local tool = char:FindFirstChildOfClass("Tool")
+            if tool then
+                tool:Activate()
+            end
+        end
 
-        local viewport =
-            workspace.CurrentCamera.ViewportSize
-
+        -- Ekran Ortası Tıklaması
+        local viewport = workspace.CurrentCamera.ViewportSize
         local x = viewport.X / 2
         local y = viewport.Y / 2
 
-        VIM:SendMouseButtonEvent(
-            x,
-            y,
-            0,
-            true,
-            game,
-            1
-        )
-
-        VIM:SendMouseButtonEvent(
-            x,
-            y,
-            0,
-            false,
-            game,
-            1
-        )
-
+        VIM:SendMouseButtonEvent(x, y, 0, true, game, 1)
+        VIM:SendMouseButtonEvent(x, y, 0, false, game, 1)
     end)
 end
 
@@ -461,7 +431,7 @@ local function doHeal()
 
     pcall(function()
 
-        pressKey(Enum.KeyCode.Three)
+        equipSlot(3)
 
         task.wait(0.05)
 
