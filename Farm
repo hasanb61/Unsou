@@ -101,10 +101,7 @@ local farmConfigs = {
         displayName = "OFF HEAD",
         bossName = "OOF Head",
         portal = offHeadPortal,
-
-        -- UNDYNE İLE AYNI
         special = true,
-
         heal = false
     },
 
@@ -124,8 +121,6 @@ local farmConfigs = {
 local activeFarm = nil
 local autoLevel = false
 
--- Her farm değişiminde artar. Eski boss döngülerinin yeni farmı
--- etkilemesini engeller.
 local farmCycleToken = 0
 
 local activeTouchCount = 0
@@ -289,13 +284,13 @@ local function useSpecialAbility()
 end
 
 --==================================================
--- GERÇEK BOSS SLOTUNU BUL
+-- GERÇEK BOSS MODELİNİ BUL
 --==================================================
 
-local function findBossSlot(bossName)
+local function findBossModel(bossName)
     local activeBosses = workspace:FindFirstChild("ActiveBosses")
     if not activeBosses then
-        return nil, nil
+        return nil
     end
 
     for _, slot in ipairs(activeBosses:GetChildren()) do
@@ -304,36 +299,28 @@ local function findBossSlot(bossName)
         if bossesFolder then
             local directBoss = bossesFolder:FindFirstChild(bossName)
 
-            if directBoss then
-                return slot, directBoss
+            if directBoss and directBoss:IsA("Model") then
+                return directBoss
             end
 
             for _, obj in ipairs(bossesFolder:GetDescendants()) do
-                if obj.Name == bossName and obj:IsA("Model") then
-                    return slot, obj
+                if obj:IsA("Model") and obj.Name == bossName then
+                    return obj
                 end
             end
         end
     end
 
-    return nil, nil
+    return nil
 end
 
-local function findBossModel(bossName)
-    local _, boss = findBossSlot(bossName)
-    return boss
-end
-
--- Kullanıcının Explorer'daki gerçek ölüm sinyali:
--- ActiveBosses > SlotX tamamen kayboluyor.
-local function bossSlotAlive(slot)
-    if not slot then
+local function bossInstanceAlive(boss)
+    if not boss then
         return false
     end
 
-    local activeBosses = workspace:FindFirstChild("ActiveBosses")
-    return activeBosses ~= nil
-        and slot.Parent == activeBosses
+    return boss.Parent ~= nil
+        and boss:IsDescendantOf(workspace)
 end
 
 local function cycleValid(farmName, token)
@@ -896,8 +883,9 @@ end
 -- BOSS AKTİFLEŞTİR
 --==================================================
 
+local setAutoLevelState -- önceden tanımlama
+
 local function activateFarm(farmName)
-    -- Manuel boss seçimi Auto Level'i kapatır.
     autoLevel = false
 
     if activeFarm == farmName then
@@ -991,7 +979,7 @@ for _, farmName in ipairs(bossOrder) do
 
     button.MouseButton1Click:Connect(function()
         activateFarm(farmName)
-        setAutoLevelState(false)
+        if setAutoLevelState then setAutoLevelState(false) end
     end)
 end
 
@@ -1033,7 +1021,7 @@ autoLevelCorner.CornerRadius =
 autoLevelCorner.Parent =
     autoLevelButton
 
-local function setAutoLevelState(on)
+setAutoLevelState = function(on)
 
     if on then
 
@@ -1325,36 +1313,36 @@ task.spawn(function()
         end
 
         settingsStats.Text =
-            "   LIVE STATS\n\n" ..
+            "    LIVE STATS\n\n" ..
 
-            "   LEVEL: " ..
+            "    LEVEL: " ..
             tostring(level) ..
 
-            "\n   GOLD: " ..
+            "\n    GOLD: " ..
             tostring(gold) ..
 
-            "\n\n   TOTAL BOSS KILL: " ..
+            "\n\n    TOTAL BOSS KILL: " ..
             tostring(totalKills) ..
 
-            "\n\n   UNDYNЕ: " ..
+            "\n\n    UNDYNE: " ..
             tostring(kills.Undyne) ..
 
             "        OUTERTALE: " ..
             tostring(kills.Outertale) ..
 
-            "\n   HYPERDUST: " ..
+            "\n    HYPERDUST: " ..
             tostring(kills.Hyperdust) ..
 
             "        BOB: " ..
             tostring(kills.Bob) ..
 
-            "\n   OFF HEAD: " ..
+            "\n    OFF HEAD: " ..
             tostring(kills.OffHead) ..
 
             "        SUSPORTAL: " ..
             tostring(kills.Susportal) ..
 
-            "\n\n   TOTAL AUTO FARM TIME: " ..
+            "\n\n    TOTAL AUTO FARM TIME: " ..
             formatTime(
                 currentFarmTime
             )
@@ -1374,7 +1362,6 @@ task.spawn(function()
             local target = getBossForLevel(level)
 
             if target and target ~= activeFarm then
-                -- Eski boss cycle'ını tamamen iptal et.
                 farmCycleToken += 1
 
                 if farmStartTime then
@@ -1461,13 +1448,13 @@ local function runBoss(farmName, token)
         return
     end
 
-    -- PORTAL
+    -- PORTALA GİT
     pcall(function()
         local char = player.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
 
         if root then
-            root.AssemblyLinearVelocity = Vector3.zero
+            root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             root.CFrame = config.portal
         end
     end)
@@ -1476,13 +1463,14 @@ local function runBoss(farmName, token)
         return
     end
 
-    -- BOSS SHIELD: TAM 5 SANİYE
+    -- 5 SANİYE SHIELD BEKLE
     local shieldEnd = tick() + 5
 
     while tick() < shieldEnd do
         if not cycleValid(farmName, token) then
             return
         end
+
         task.wait(0.1)
     end
 
@@ -1490,21 +1478,16 @@ local function runBoss(farmName, token)
         return
     end
 
-    -- ==================================================
-    -- ÖNCE GERÇEK SLOTU BUL
-    -- ==================================================
-    -- Off Head dahil bütün bosslarda artık:
-    -- ActiveBosses > SlotX > Bosses > BossModel
-    -- bağlantısını saklıyoruz.
-    local bossSlot, bossModel
+    -- GERÇEK BOSS INSTANCE'INI BEKLE
+    local boss = nil
     local spawnStart = tick()
 
     while cycleValid(farmName, token)
-        and tick() - spawnStart < 30 do
+        and tick() - spawnStart < 20 do
 
-        bossSlot, bossModel = findBossSlot(config.bossName)
+        boss = findBossModel(config.bossName)
 
-        if bossSlot and bossModel then
+        if boss then
             break
         end
 
@@ -1515,16 +1498,12 @@ local function runBoss(farmName, token)
         return
     end
 
-    if not bossSlot or not bossModel then
-        -- Spawn olmadı. Yanlışlıkla kill sayma.
+    if not boss then
         goSafe()
         return
     end
 
-    -- ==================================================
-    -- SPECIAL
-    -- ==================================================
-
+    -- SPECIAL VEYA NORMAL ATIŞ
     if config.special then
         useSpecialAbility()
 
@@ -1532,11 +1511,9 @@ local function runBoss(farmName, token)
             return
         end
 
-        -- 5 sonrası her zaman sword
         equipSword()
         task.wait(0.15)
     else
-        -- Bob'da 5 yok.
         equipSword()
     end
 
@@ -1544,11 +1521,8 @@ local function runBoss(farmName, token)
         return
     end
 
-    -- ==================================================
-    -- 5 İLE SLOT ANINDA SİLİNDİ Mİ?
-    -- ==================================================
-
-    if not bossSlotAlive(bossSlot) then
+    -- SPECIAL SONRASI BOSS ÖLDÜ MÜ?
+    if not bossInstanceAlive(boss) then
         if registerKill(farmName, token) then
             task.wait(2)
 
@@ -1560,67 +1534,50 @@ local function runBoss(farmName, token)
         return
     end
 
-    -- ==================================================
-    -- NORMAL AUTO CLICK
-    -- ==================================================
-
+    -- NORMAL AUTO CLICK DÖNGÜSÜ
     local lastClick = 0
-    local fightStart = tick()
+    local failSafeStart = tick()
 
     while cycleValid(farmName, token) do
-
-        -- 5 dakika güvenlik sınırı.
-        -- Timeout kill sayılmaz.
-        if tick() - fightStart >= 300 then
+        if tick() - failSafeStart > 300 then
             if cycleValid(farmName, token) then
                 goSafe()
             end
             return
         end
 
-        -- ANA ÖLÜM KONTROLÜ:
-        -- Boss modeli değil, ActiveBosses slotu yok olmuş olmalı.
-        if not bossSlotAlive(bossSlot) then
+        if not bossInstanceAlive(boss) then
             if registerKill(farmName, token) then
                 task.wait(2)
-
                 if cycleValid(farmName, token) then
                     goSafe()
                 end
             end
-
             return
         end
 
-        if tick() - lastClick >= 0.10 then
+        if tick() - lastClick >= 0.1 then
             centerClick()
             lastClick = tick()
         end
 
-        task.wait(0.03)
+        task.wait(0.05)
     end
 end
 
 --==================================================
--- ANA FARM LOOP
+-- MASTER FARM LOOP (SÜREKLİ DÖNGÜ)
 --==================================================
 
 task.spawn(function()
     while true do
+        task.wait(0.5)
+
         if activeFarm then
-            local selectedFarm = activeFarm
-            local selectedToken = farmCycleToken
+            local currentFarm = activeFarm
+            local currentToken = farmCycleToken
 
-            runBoss(selectedFarm, selectedToken)
-
-            if cycleValid(selectedFarm, selectedToken) then
-                task.wait(0.25)
-            else
-                task.wait(0.05)
-            end
-        else
-            task.wait(0.2)
+            runBoss(currentFarm, currentToken)
         end
     end
 end)
-
