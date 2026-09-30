@@ -141,6 +141,9 @@ local kills = {
 local farmStartTime = nil
 local totalFarmTime = 0
 
+-- Her farm değişiminde artar. Eski boss döngülerini kesin olarak iptal eder.
+local farmToken = 0
+
 --==================================================
 -- ANTI AFK
 --==================================================
@@ -360,14 +363,19 @@ end)
 local function centerClick()
 
     if userTouchingScreen then
-        return
+        return false
     end
 
-    pcall(function()
+    local clicked = false
 
-        local viewport =
-            workspace.CurrentCamera.ViewportSize
+    local ok = pcall(function()
 
+        local camera = workspace.CurrentCamera
+        if not camera then
+            return
+        end
+
+        local viewport = camera.ViewportSize
         local x = viewport.X / 2
         local y = viewport.Y / 2
 
@@ -380,6 +388,8 @@ local function centerClick()
             1
         )
 
+        task.wait(0.02)
+
         VIM:SendMouseButtonEvent(
             x,
             y,
@@ -389,7 +399,10 @@ local function centerClick()
             1
         )
 
+        clicked = true
     end)
+
+    return ok and clicked and not userTouchingScreen
 end
 
 --==================================================
@@ -447,9 +460,17 @@ end
 local healing = false
 local healReady = true
 
-local function doHeal()
+local function doHeal(expectedToken)
 
     if healing then
+        return
+    end
+
+    if expectedToken and expectedToken ~= farmToken then
+        return
+    end
+
+    if not activeFarm then
         return
     end
 
@@ -461,14 +482,18 @@ local function doHeal()
 
         task.wait(0.05)
 
-        local viewport =
-            workspace.CurrentCamera.ViewportSize
+        if expectedToken and expectedToken ~= farmToken then
+            return
+        end
 
-        local clickX =
-            viewport.X / 2
+        local camera = workspace.CurrentCamera
+        if not camera then
+            return
+        end
 
-        local clickY =
-            viewport.Y - 100
+        local viewport = camera.ViewportSize
+        local clickX = viewport.X / 2
+        local clickY = viewport.Y - 100
 
         VIM:SendMouseButtonEvent(
             clickX,
@@ -492,9 +517,11 @@ local function doHeal()
 
         task.wait(0.3)
 
-        equipSword()
-
-        task.wait(3.5)
+        -- Farm değişmediyse kılıcı geri al.
+        if not expectedToken or expectedToken == farmToken then
+            equipSword()
+            task.wait(3.5)
+        end
 
     end)
 
@@ -521,6 +548,8 @@ task.spawn(function()
                 local hp =
                     getHealthPercent()
 
+                local currentToken = farmToken
+
                 if hp then
 
                     if hp <= 30 then
@@ -529,7 +558,7 @@ task.spawn(function()
 
                             healReady = false
 
-                            doHeal()
+                            doHeal(currentToken)
                         end
 
                     elseif hp > 30 then
@@ -879,41 +908,56 @@ end
 -- BOSS AKTİFLEŞTİR
 --==================================================
 
-local function activateFarm(farmName)
+local function finishFarmTimer()
+    if farmStartTime then
+        totalFarmTime += math.max(0, tick() - farmStartTime)
+        farmStartTime = nil
+    end
+end
 
-    autoLevel = false
+local function refreshFarmButtons()
+    for _, farmName in ipairs(bossOrder) do
+        setButtonState(farmName, activeFarm == farmName)
+    end
+end
+
+-- Farm değişimini tek merkezden yönetir.
+-- disableAuto=true ise manuel seçim Auto Level'i kapatır.
+local function switchFarm(farmName, disableAuto)
+
+    if disableAuto then
+        autoLevel = false
+    end
 
     if activeFarm == farmName then
-
-        if farmStartTime then
-
-            totalFarmTime +=
-                tick() - farmStartTime
+        if farmName == nil then
+            refreshFarmButtons()
         end
-
-        activeFarm = nil
-        farmStartTime = nil
-
-        resetBossButtons()
-
         return
     end
 
-    if farmStartTime then
+    -- Eski runBoss döngüsünü anında geçersiz yap.
+    farmToken += 1
 
-        totalFarmTime +=
-            tick() - farmStartTime
-    end
+    finishFarmTimer()
 
     activeFarm = farmName
-    farmStartTime = tick()
 
-    resetBossButtons()
+    if activeFarm then
+        farmStartTime = tick()
+    end
 
-    setButtonState(
-        farmName,
-        true
-    )
+    refreshFarmButtons()
+end
+
+local function activateFarm(farmName)
+
+    if activeFarm == farmName and not autoLevel then
+        switchFarm(nil, true)
+        return
+    end
+
+    switchFarm(farmName, true)
 end
 
 --==================================================
@@ -980,6 +1024,7 @@ for _, farmName in ipairs(bossOrder) do
 
     button.MouseButton1Click:Connect(function()
         activateFarm(farmName)
+        setAutoLevelState(autoLevel)
     end)
 end
 
@@ -1052,41 +1097,16 @@ autoLevelButton.MouseButton1Click:Connect(function()
     if autoLevel then
 
         autoLevel = false
-
-        if farmStartTime then
-            totalFarmTime +=
-                tick() - farmStartTime
-        end
-
-        activeFarm = nil
-        farmStartTime = nil
-
-        resetBossButtons()
+        switchFarm(nil, false)
         setAutoLevelState(false)
 
     else
 
         autoLevel = true
-
         setAutoLevelState(true)
 
-        local target =
-            getBossForLevel(
-                getLevel()
-            )
-
-        if target then
-
-            activeFarm = target
-            farmStartTime = tick()
-
-            resetBossButtons()
-
-            setButtonState(
-                target,
-                true
-            )
-        end
+        local target = getBossForLevel(getLevel())
+        switchFarm(target, false)
     end
 end)
 
@@ -1363,30 +1383,11 @@ task.spawn(function()
 
         if autoLevel then
 
-            local level =
-                getLevel()
+            local level = getLevel()
+            local target = getBossForLevel(level)
 
-            local target =
-                getBossForLevel(level)
-
-            if target
-                and target ~= activeFarm then
-
-                if farmStartTime then
-
-                    totalFarmTime +=
-                        tick() - farmStartTime
-                end
-
-                activeFarm = target
-                farmStartTime = tick()
-
-                resetBossButtons()
-
-                setButtonState(
-                    target,
-                    true
-                )
+            if target ~= activeFarm then
+                switchFarm(target, false)
             end
         end
     end
@@ -1396,13 +1397,24 @@ end)
 -- KILL KAYDET
 --==================================================
 
-local function registerKill(farmName)
+local function registerKill(farmName, expectedToken)
+
+    -- Eski/iptal edilmiş cycle hiçbir şekilde kill yazamaz.
+    if expectedToken ~= farmToken then
+        return false
+    end
+
+    if activeFarm ~= farmName then
+        return false
+    end
 
     totalKills += 1
 
     if kills[farmName] ~= nil then
         kills[farmName] += 1
     end
+
+    return true
 end
 
 --==================================================
@@ -1437,14 +1449,44 @@ end
 -- BOSS FARM
 --==================================================
 
-local function runBoss(
-    farmName
-)
+local function isBossInstanceAlive(boss)
+    if not boss then
+        return false
+    end
 
-    local config =
-        farmConfigs[farmName]
+    local ok, alive = pcall(function()
+        return boss.Parent ~= nil and boss:IsDescendantOf(workspace)
+    end)
 
-    if not config then
+    return ok and alive
+end
+
+local function waitForBossInstance(bossName, expectedToken, timeout)
+
+    local started = tick()
+
+    while tick() - started < timeout do
+
+        if expectedToken ~= farmToken or not activeFarm then
+            return nil
+        end
+
+        local boss = findBossModel(bossName)
+        if boss then
+            return boss
+        end
+
+        task.wait(0.10)
+    end
+
+    return nil
+end
+
+local function runBoss(farmName, expectedToken)
+
+    local config = farmConfigs[farmName]
+
+    if not config or expectedToken ~= farmToken or activeFarm ~= farmName then
         return
     end
 
@@ -1452,162 +1494,123 @@ local function runBoss(
     -- PORTALA GİT
     --==============================================
 
-    pcall(function()
-
-        local char =
-            player.Character
-
-        local root =
-            char and
-            char:FindFirstChild(
-                "HumanoidRootPart"
-            )
+    local teleported = pcall(function()
+        local char = player.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
 
         if root then
-
-            root.AssemblyLinearVelocity =
-                Vector3.new(0, 0, 0)
-
-            root.CFrame =
-                config.portal
+            root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            root.CFrame = config.portal
         end
     end)
 
-    --==============================================
-    -- 6 SANİYE SHIELD
-    --==============================================
-
-    local shieldTime = 0
-
-    while shieldTime < 6 do
-
-        if activeFarm ~= farmName then
-            return
-        end
-
-        task.wait(0.5)
-
-        shieldTime += 0.5
-    end
-
-    if activeFarm ~= farmName then
+    if not teleported or expectedToken ~= farmToken then
         return
     end
 
     --==============================================
-    -- BOSS SNAPSHOT
+    -- 5 SANİYE SHIELD
     --==============================================
 
-    local bossBeforeSpecial =
-        findBossModel(
-            config.bossName
-        )
+    local shieldEnd = tick() + 5
+
+    while tick() < shieldEnd do
+        if expectedToken ~= farmToken or activeFarm ~= farmName then
+            return
+        end
+        task.wait(0.10)
+    end
+
+    if expectedToken ~= farmToken or activeFarm ~= farmName then
+        return
+    end
+
+    -- Shield bittikten sonra GERÇEK boss instance'ını yakala.
+    -- Böylece 5'in bossu öldürüp öldürmediği güvenilir şekilde anlaşılır.
+    local boss = waitForBossInstance(
+        config.bossName,
+        expectedToken,
+        15
+    )
+
+    if not boss then
+        if expectedToken == farmToken and activeFarm == farmName then
+            goSafe()
+            task.wait(1)
+        end
+        return
+    end
 
     --==============================================
     -- UNDYNE MANTIĞI
     -- 5 → 1 → CENTER CLICK
+    -- Bob: 1 → CENTER CLICK
     --==============================================
 
     if config.special then
 
         useSpecialAbility()
 
-        if activeFarm ~= farmName then
+        if expectedToken ~= farmToken or activeFarm ~= farmName then
             return
         end
 
-        -- 5 SONRASI HER ZAMAN 1
+        -- 5 sonrası her zaman sword.
         equipSword()
-
         task.wait(0.15)
 
     else
 
+        -- Bob'da 5 YOK.
         equipSword()
     end
 
+    if expectedToken ~= farmToken or activeFarm ~= farmName then
+        return
+    end
+
     --==============================================
-    -- 5 TEK BAŞINA ÖLDÜRDÜYSE
+    -- BOSS 5 İLE ÖLDÜYSE
     --==============================================
 
-    if bossBeforeSpecial then
+    if not isBossInstanceAlive(boss) then
 
-        if not findBossModel(
-            config.bossName
-        ) then
-
-            registerKill(
-                farmName
-            )
-
+        if registerKill(farmName, expectedToken) then
             task.wait(2)
-
-            goSafe()
-
-            return
+            if expectedToken == farmToken and activeFarm == farmName then
+                goSafe()
+            end
         end
-    end
 
-    --==============================================
-    -- GERÇEK BOSSU BEKLE
-    --==============================================
-
-    local boss =
-        findBossModel(
-            config.bossName
-        )
-
-    local searchStart =
-        tick()
-
-    while not boss
-        and activeFarm == farmName
-        and tick() - searchStart < 60 do
-
-        task.wait(0.15)
-
-        boss =
-            findBossModel(
-                config.bossName
-            )
-    end
-
-    if activeFarm ~= farmName then
         return
     end
 
     --==============================================
     -- NORMAL AUTO CLICK
+    -- Boss instance'ı değişse bile eski bossun ölümü
+    -- yanlış instance ile karıştırılmaz.
     --==============================================
 
     local lastClick = 0
 
-    while activeFarm == farmName do
+    while expectedToken == farmToken and activeFarm == farmName do
 
-        boss =
-            findBossModel(
-                config.bossName
-            )
+        if not isBossInstanceAlive(boss) then
 
-        -- GERÇEK MODEL YOKSA BOSS ÖLDÜ
-        if not boss then
-
-            registerKill(
-                farmName
-            )
-
-            task.wait(2)
-
-            goSafe()
+            if registerKill(farmName, expectedToken) then
+                task.wait(2)
+                if expectedToken == farmToken and activeFarm == farmName then
+                    goSafe()
+                end
+            end
 
             return
         end
 
         if tick() - lastClick >= 0.10 then
-
-            centerClick()
-
-            lastClick = tick()
+            if centerClick() then
+                lastClick = tick()
+            end
         end
 
         task.wait(0.03)
@@ -1622,36 +1625,23 @@ task.spawn(function()
 
     while true do
 
-        if activeFarm then
+        local selectedFarm = activeFarm
+        local selectedToken = farmToken
 
-            local selectedFarm =
-                activeFarm
+        if selectedFarm then
 
-            runBoss(
-                selectedFarm
-            )
+            runBoss(selectedFarm, selectedToken)
 
-            -- Farm hâlâ aynıysa
-            -- sonraki cycle'a geç
-            if activeFarm ==
-                selectedFarm then
-
-                if farmStartTime then
-
-                    totalFarmTime +=
-                        tick() -
-                        farmStartTime
-                end
-
-                farmStartTime =
-                    tick()
-
+            -- Farm aynı kaldıysa yeni cycle'a geç.
+            -- Farm değiştiyse yeni token zaten eski cycle'ı iptal etti.
+            if activeFarm == selectedFarm and farmToken == selectedToken then
                 task.wait(0.5)
             end
 
         else
 
-            task.wait(0.2)
+            task.wait(0.20)
         end
     end
 end)
+
