@@ -293,21 +293,23 @@ local function findBossModel(bossName)
         return nil
     end
 
-    for _, slot in ipairs(activeBosses:GetChildren()) do
-        local bossesFolder = slot:FindFirstChild("Bosses")
-
+    -- 1. Klasörler içinde arama
+    for _, folder in ipairs(activeBosses:GetChildren()) do
+        local bossesFolder = folder:FindFirstChild("Bosses")
         if bossesFolder then
-            local directBoss = bossesFolder:FindFirstChild(bossName)
-
-            if directBoss and directBoss:IsA("Model") then
-                return directBoss
+            local found = bossesFolder:FindFirstChild(bossName)
+            if found then return found end
+            if bossName == "OOF Head" then
+                local alt = bossesFolder:FindFirstChild("Off Head") or bossesFolder:FindFirstChild("OffHead")
+                if alt then return alt end
             end
+        end
+    end
 
-            for _, obj in ipairs(bossesFolder:GetDescendants()) do
-                if obj:IsA("Model") and obj.Name == bossName then
-                    return obj
-                end
-            end
+    -- 2. Doğrudan ActiveBosses altında veya derinliklerde arama
+    for _, obj in ipairs(activeBosses:GetDescendants()) do
+        if obj.Name == bossName or (bossName == "OOF Head" and (obj.Name == "Off Head" or obj.Name == "OffHead")) then
+            return obj
         end
     end
 
@@ -1501,6 +1503,20 @@ local function runBoss(farmName, token)
     if not boss then
         goSafe()
         return
+    end
+
+    -- OFF HEAD İÇİN ARENAYA / BOSS'UN YANINA ÖZEL IŞINLANMA
+    if farmName == "OffHead" and boss then
+        pcall(function()
+            local char = player.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            
+            local bossRoot = boss:FindFirstChild("HumanoidRootPart") or boss:FindFirstChild("Torso") or boss.PrimaryPart
+            if root and bossRoot then
+                root.CFrame = bossRoot.CFrame * CFrame.new(0, 0, 4) -- Boss'un tam 4 stud önü
+            end
+        end)
+        task.wait(0.2)
     end
 
     -- SPECIAL VEYA NORMAL ATIŞ
