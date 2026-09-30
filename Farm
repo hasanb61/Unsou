@@ -101,7 +101,10 @@ local farmConfigs = {
         displayName = "OFF HEAD",
         bossName = "OOF Head",
         portal = offHeadPortal,
+
+        -- UNDYNE İLE AYNI
         special = true,
+
         heal = false
     },
 
@@ -120,8 +123,6 @@ local farmConfigs = {
 
 local activeFarm = nil
 local autoLevel = false
-
-local farmCycleToken = 0
 
 local activeTouchCount = 0
 local userTouchingScreen = false
@@ -193,72 +194,93 @@ task.spawn(function()
 end)
 
 --==================================================
--- YENİ GELİŞMİŞ EŞYA & YETENEK KULLANIMI
+-- TUŞ FONKSİYONLARI
 --==================================================
 
 local function pressKey(key)
-    pcall(function()
-        VIM:SendKeyEvent(true, key, false, game)
-        task.wait(0.05)
-        VIM:SendKeyEvent(false, key, false, game)
-    end)
-end
 
--- Doğrudan Backpack içindeki slot indeksine veya Tool'a göre kuşanma
-local function equipSlot(slotIndex)
     pcall(function()
-        local char = player.Character
-        if not char then return end
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        local backpack = player:FindFirstChild("Backpack")
-        
-        if backpack and humanoid then
-            local tools = backpack:GetChildren()
-            if tools[slotIndex] and tools[slotIndex]:IsA("Tool") then
-                humanoid:EquipTool(tools[slotIndex])
-            else
-                -- İkinci yöntem: Tuş simülasyonu
-                local key = Enum.KeyCode.One
-                if slotIndex == 5 then key = Enum.KeyCode.Five
-                elseif slotIndex == 3 then key = Enum.KeyCode.Three
-                end
-                pressKey(key)
-            end
-        end
+
+        VIM:SendKeyEvent(
+            true,
+            key,
+            false,
+            game
+        )
+
+        task.wait(0.05)
+
+        VIM:SendKeyEvent(
+            false,
+            key,
+            false,
+            game
+        )
+
     end)
 end
 
 local function equipSword()
-    equipSlot(1)
+    pressKey(Enum.KeyCode.One)
 end
 
+--==================================================
+-- 5 ÖZEL YETENEK
+--==================================================
+
 local function useSpecialAbility()
+
     pcall(function()
-        -- 1. Yöntem: 5. Slottaki yeteneği çantadan kuşan ve çalıştır
-        equipSlot(5)
-        task.wait(0.1)
 
-        local char = player.Character
-        if char then
-            local tool = char:FindFirstChildOfClass("Tool")
-            if tool then
-                tool:Activate()
-            end
-        end
+        VIM:SendKeyEvent(
+            true,
+            Enum.KeyCode.Five,
+            false,
+            game
+        )
 
-        -- 2. Yöntem: Tuş ve Tıklama Simülasyonu (Yedek)
-        pressKey(Enum.KeyCode.Five)
-        task.wait(0.1)
-
-        local viewportSize = workspace.CurrentCamera.ViewportSize
-        local clickX = viewportSize.X / 2
-        local clickY = viewportSize.Y / 2
-
-        VIM:SendMouseButtonEvent(clickX, clickY, 0, true, game, 1)
         task.wait(0.05)
-        VIM:SendMouseButtonEvent(clickX, clickY, 0, false, game, 1)
 
-        task.wait(0.6)
+        VIM:SendKeyEvent(
+            false,
+            Enum.KeyCode.Five,
+            false,
+            game
+        )
+
+        task.wait(0.2)
+
+        local viewportSize =
+            workspace.CurrentCamera.ViewportSize
+
+        local clickX =
+            viewportSize.X / 2
+
+        local clickY =
+            viewportSize.Y / 2
+
+        VIM:SendMouseButtonEvent(
+            clickX,
+            clickY,
+            0,
+            true,
+            game,
+            1
+        )
+
+        task.wait(0.05)
+
+        VIM:SendMouseButtonEvent(
+            clickX,
+            clickY,
+            0,
+            false,
+            game,
+            1
+        )
+
+        task.wait(0.8)
+
     end)
 end
 
@@ -267,46 +289,43 @@ end
 --==================================================
 
 local function findBossModel(bossName)
-    local activeBosses = workspace:FindFirstChild("ActiveBosses")
+
+    local activeBosses =
+        workspace:FindFirstChild("ActiveBosses")
+
     if not activeBosses then
         return nil
     end
 
-    -- 1. Klasörler içinde arama
-    for _, folder in ipairs(activeBosses:GetChildren()) do
-        local bossesFolder = folder:FindFirstChild("Bosses")
+    for _, slot in ipairs(activeBosses:GetChildren()) do
+
+        local bossesFolder =
+            slot:FindFirstChild("Bosses")
+
         if bossesFolder then
-            local found = bossesFolder:FindFirstChild(bossName)
-            if found then return found end
-            if bossName == "OOF Head" then
-                local alt = bossesFolder:FindFirstChild("Off Head") or bossesFolder:FindFirstChild("OffHead")
-                if alt then return alt end
+
+            local directBoss =
+                bossesFolder:FindFirstChild(bossName)
+
+            if directBoss and directBoss:IsA("Model") then
+                return directBoss
+            end
+
+            for _, obj in ipairs(
+                bossesFolder:GetDescendants()
+            ) do
+
+                if obj:IsA("Model")
+                    and obj.Name == bossName then
+
+                    return obj
+                end
+
             end
         end
     end
 
-    -- 2. Doğrudan ActiveBosses altında veya derinliklerde arama
-    for _, obj in ipairs(activeBosses:GetDescendants()) do
-        if obj.Name == bossName or (bossName == "OOF Head" and (obj.Name == "Off Head" or obj.Name == "OffHead")) then
-            return obj
-        end
-    end
-
     return nil
-end
-
-local function bossInstanceAlive(boss)
-    if not boss then
-        return false
-    end
-
-    return boss.Parent ~= nil
-        and boss:IsDescendantOf(workspace)
-end
-
-local function cycleValid(farmName, token)
-    return activeFarm == farmName
-        and farmCycleToken == token
 end
 
 --==================================================
@@ -335,7 +354,7 @@ UIS.TouchEnded:Connect(function()
 end)
 
 --==================================================
--- CENTER CLICK (GELİŞTİRİLDİ)
+-- CENTER CLICK
 --==================================================
 
 local function centerClick()
@@ -345,22 +364,31 @@ local function centerClick()
     end
 
     pcall(function()
-        -- Çantadaki kılıcın doğrudan Activate edilmesi
-        local char = player.Character
-        if char then
-            local tool = char:FindFirstChildOfClass("Tool")
-            if tool then
-                tool:Activate()
-            end
-        end
 
-        -- Ekran Ortası Tıklaması
-        local viewport = workspace.CurrentCamera.ViewportSize
+        local viewport =
+            workspace.CurrentCamera.ViewportSize
+
         local x = viewport.X / 2
         local y = viewport.Y / 2
 
-        VIM:SendMouseButtonEvent(x, y, 0, true, game, 1)
-        VIM:SendMouseButtonEvent(x, y, 0, false, game, 1)
+        VIM:SendMouseButtonEvent(
+            x,
+            y,
+            0,
+            true,
+            game,
+            1
+        )
+
+        VIM:SendMouseButtonEvent(
+            x,
+            y,
+            0,
+            false,
+            game,
+            1
+        )
+
     end)
 end
 
@@ -426,12 +454,10 @@ local function doHeal()
     end
 
     healing = true
-    local healFarm = activeFarm
-    local healToken = farmCycleToken
 
     pcall(function()
 
-        equipSlot(3)
+        pressKey(Enum.KeyCode.Three)
 
         task.wait(0.05)
 
@@ -466,9 +492,7 @@ local function doHeal()
 
         task.wait(0.3)
 
-        if cycleValid(healFarm, healToken) then
-            equipSword()
-        end
+        equipSword()
 
         task.wait(3.5)
 
@@ -855,36 +879,41 @@ end
 -- BOSS AKTİFLEŞTİR
 --==================================================
 
-local setAutoLevelState -- önceden tanımlama
-
 local function activateFarm(farmName)
+
     autoLevel = false
 
     if activeFarm == farmName then
-        farmCycleToken += 1
 
         if farmStartTime then
-            totalFarmTime += tick() - farmStartTime
+
+            totalFarmTime +=
+                tick() - farmStartTime
         end
 
         activeFarm = nil
         farmStartTime = nil
 
         resetBossButtons()
+
         return
     end
 
-    farmCycleToken += 1
-
     if farmStartTime then
-        totalFarmTime += tick() - farmStartTime
+
+        totalFarmTime +=
+            tick() - farmStartTime
     end
 
     activeFarm = farmName
     farmStartTime = tick()
 
     resetBossButtons()
-    setButtonState(farmName, true)
+
+    setButtonState(
+        farmName,
+        true
+    )
 end
 
 --==================================================
@@ -951,7 +980,6 @@ for _, farmName in ipairs(bossOrder) do
 
     button.MouseButton1Click:Connect(function()
         activateFarm(farmName)
-        if setAutoLevelState then setAutoLevelState(false) end
     end)
 end
 
@@ -993,7 +1021,7 @@ autoLevelCorner.CornerRadius =
 autoLevelCorner.Parent =
     autoLevelButton
 
-setAutoLevelState = function(on)
+local function setAutoLevelState(on)
 
     if on then
 
@@ -1020,12 +1048,14 @@ setAutoLevelState = function(on)
 end
 
 autoLevelButton.MouseButton1Click:Connect(function()
+
     if autoLevel then
+
         autoLevel = false
-        farmCycleToken += 1
 
         if farmStartTime then
-            totalFarmTime += tick() - farmStartTime
+            totalFarmTime +=
+                tick() - farmStartTime
         end
 
         activeFarm = nil
@@ -1033,30 +1063,30 @@ autoLevelButton.MouseButton1Click:Connect(function()
 
         resetBossButtons()
         setAutoLevelState(false)
-        return
-    end
 
-    autoLevel = true
-    setAutoLevelState(true)
-
-    local target = getBossForLevel(getLevel())
-
-    if target then
-        farmCycleToken += 1
-
-        if farmStartTime then
-            totalFarmTime += tick() - farmStartTime
-        end
-
-        activeFarm = target
-        farmStartTime = tick()
-
-        resetBossButtons()
-        setButtonState(target, true)
     else
-        activeFarm = nil
-        farmStartTime = nil
-        resetBossButtons()
+
+        autoLevel = true
+
+        setAutoLevelState(true)
+
+        local target =
+            getBossForLevel(
+                getLevel()
+            )
+
+        if target then
+
+            activeFarm = target
+            farmStartTime = tick()
+
+            resetBossButtons()
+
+            setButtonState(
+                target,
+                true
+            )
+        end
     end
 end)
 
@@ -1285,36 +1315,36 @@ task.spawn(function()
         end
 
         settingsStats.Text =
-            "    LIVE STATS\n\n" ..
+            "   LIVE STATS\n\n" ..
 
-            "    LEVEL: " ..
+            "   LEVEL: " ..
             tostring(level) ..
 
-            "\n    GOLD: " ..
+            "\n   GOLD: " ..
             tostring(gold) ..
 
-            "\n\n    TOTAL BOSS KILL: " ..
+            "\n\n   TOTAL BOSS KILL: " ..
             tostring(totalKills) ..
 
-            "\n\n    UNDYNE: " ..
+            "\n\n   UNDYNЕ: " ..
             tostring(kills.Undyne) ..
 
             "        OUTERTALE: " ..
             tostring(kills.Outertale) ..
 
-            "\n    HYPERDUST: " ..
+            "\n   HYPERDUST: " ..
             tostring(kills.Hyperdust) ..
 
             "        BOB: " ..
             tostring(kills.Bob) ..
 
-            "\n    OFF HEAD: " ..
+            "\n   OFF HEAD: " ..
             tostring(kills.OffHead) ..
 
             "        SUSPORTAL: " ..
             tostring(kills.Susportal) ..
 
-            "\n\n    TOTAL AUTO FARM TIME: " ..
+            "\n\n   TOTAL AUTO FARM TIME: " ..
             formatTime(
                 currentFarmTime
             )
@@ -1326,38 +1356,37 @@ end)
 --==================================================
 
 task.spawn(function()
+
     while true do
+
         task.wait(0.5)
 
         if autoLevel then
-            local level = getLevel()
-            local target = getBossForLevel(level)
 
-            if target and target ~= activeFarm then
-                farmCycleToken += 1
+            local level =
+                getLevel()
+
+            local target =
+                getBossForLevel(level)
+
+            if target
+                and target ~= activeFarm then
 
                 if farmStartTime then
-                    totalFarmTime += tick() - farmStartTime
+
+                    totalFarmTime +=
+                        tick() - farmStartTime
                 end
 
                 activeFarm = target
                 farmStartTime = tick()
 
                 resetBossButtons()
-                setButtonState(target, true)
-                setAutoLevelState(true)
 
-            elseif not target and activeFarm then
-                farmCycleToken += 1
-
-                if farmStartTime then
-                    totalFarmTime += tick() - farmStartTime
-                end
-
-                activeFarm = nil
-                farmStartTime = nil
-                resetBossButtons()
-                setAutoLevelState(true)
+                setButtonState(
+                    target,
+                    true
+                )
             end
         end
     end
@@ -1367,18 +1396,13 @@ end)
 -- KILL KAYDET
 --==================================================
 
-local function registerKill(farmName, token)
-    if not cycleValid(farmName, token) then
-        return false
-    end
+local function registerKill(farmName)
 
     totalKills += 1
 
     if kills[farmName] ~= nil then
         kills[farmName] += 1
     end
-
-    return true
 end
 
 --==================================================
@@ -1413,157 +1437,221 @@ end
 -- BOSS FARM
 --==================================================
 
-local function runBoss(farmName, token)
-    local config = farmConfigs[farmName]
+local function runBoss(
+    farmName
+)
 
-    if not config or not cycleValid(farmName, token) then
+    local config =
+        farmConfigs[farmName]
+
+    if not config then
         return
     end
 
+    --==============================================
     -- PORTALA GİT
+    --==============================================
+
     pcall(function()
-        local char = player.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
+
+        local char =
+            player.Character
+
+        local root =
+            char and
+            char:FindFirstChild(
+                "HumanoidRootPart"
+            )
 
         if root then
-            root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            root.CFrame = config.portal
+
+            root.AssemblyLinearVelocity =
+                Vector3.new(0, 0, 0)
+
+            root.CFrame =
+                config.portal
         end
     end)
 
-    if not cycleValid(farmName, token) then
-        return
-    end
+    --==============================================
+    -- 6 SANİYE SHIELD
+    --==============================================
 
-    -- 5 SANİYE SHIELD BEKLE
-    local shieldEnd = tick() + 5
+    local shieldTime = 0
 
-    while tick() < shieldEnd do
-        if not cycleValid(farmName, token) then
+    while shieldTime < 6 do
+
+        if activeFarm ~= farmName then
             return
         end
 
-        task.wait(0.1)
+        task.wait(0.5)
+
+        shieldTime += 0.5
     end
 
-    if not cycleValid(farmName, token) then
+    if activeFarm ~= farmName then
         return
     end
 
-    -- GERÇEK BOSS INSTANCE'INI BEKLE
-    local boss = nil
-    local spawnStart = tick()
+    --==============================================
+    -- BOSS SNAPSHOT
+    --==============================================
 
-    while cycleValid(farmName, token)
-        and tick() - spawnStart < 20 do
+    local bossBeforeSpecial =
+        findBossModel(
+            config.bossName
+        )
 
-        boss = findBossModel(config.bossName)
+    --==============================================
+    -- UNDYNE MANTIĞI
+    -- 5 → 1 → CENTER CLICK
+    --==============================================
 
-        if boss then
-            break
-        end
-
-        task.wait(0.1)
-    end
-
-    if not cycleValid(farmName, token) then
-        return
-    end
-
-    if not boss then
-        goSafe()
-        return
-    end
-
-    -- OFF HEAD İÇİN ARENAYA / BOSS'UN YANINA ÖZEL IŞINLANMA
-    if farmName == "OffHead" and boss then
-        pcall(function()
-            local char = player.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-            
-            local bossRoot = boss:FindFirstChild("HumanoidRootPart") or boss:FindFirstChild("Torso") or boss.PrimaryPart
-            if root and bossRoot then
-                root.CFrame = bossRoot.CFrame * CFrame.new(0, 0, 4) -- Boss'un tam 4 stud önü
-            end
-        end)
-        task.wait(0.2)
-    end
-
-    -- SPECIAL VEYA NORMAL ATIŞ
     if config.special then
+
         useSpecialAbility()
 
-        if not cycleValid(farmName, token) then
+        if activeFarm ~= farmName then
             return
         end
 
+        -- 5 SONRASI HER ZAMAN 1
         equipSword()
+
         task.wait(0.15)
+
     else
+
         equipSword()
     end
 
-    if not cycleValid(farmName, token) then
-        return
-    end
+    --==============================================
+    -- 5 TEK BAŞINA ÖLDÜRDÜYSE
+    --==============================================
 
-    -- SPECIAL SONRASI BOSS ÖLDÜ MÜ?
-    if not bossInstanceAlive(boss) then
-        if registerKill(farmName, token) then
+    if bossBeforeSpecial then
+
+        if not findBossModel(
+            config.bossName
+        ) then
+
+            registerKill(
+                farmName
+            )
+
             task.wait(2)
 
-            if cycleValid(farmName, token) then
-                goSafe()
-            end
-        end
+            goSafe()
 
+            return
+        end
+    end
+
+    --==============================================
+    -- GERÇEK BOSSU BEKLE
+    --==============================================
+
+    local boss =
+        findBossModel(
+            config.bossName
+        )
+
+    local searchStart =
+        tick()
+
+    while not boss
+        and activeFarm == farmName
+        and tick() - searchStart < 60 do
+
+        task.wait(0.15)
+
+        boss =
+            findBossModel(
+                config.bossName
+            )
+    end
+
+    if activeFarm ~= farmName then
         return
     end
 
-    -- NORMAL AUTO CLICK DÖNGÜSÜ
+    --==============================================
+    -- NORMAL AUTO CLICK
+    --==============================================
+
     local lastClick = 0
-    local failSafeStart = tick()
 
-    while cycleValid(farmName, token) do
-        if tick() - failSafeStart > 300 then
-            if cycleValid(farmName, token) then
-                goSafe()
-            end
+    while activeFarm == farmName do
+
+        boss =
+            findBossModel(
+                config.bossName
+            )
+
+        -- GERÇEK MODEL YOKSA BOSS ÖLDÜ
+        if not boss then
+
+            registerKill(
+                farmName
+            )
+
+            task.wait(2)
+
+            goSafe()
+
             return
         end
 
-        if not bossInstanceAlive(boss) then
-            if registerKill(farmName, token) then
-                task.wait(2)
-                if cycleValid(farmName, token) then
-                    goSafe()
-                end
-            end
-            return
-        end
+        if tick() - lastClick >= 0.10 then
 
-        if tick() - lastClick >= 0.1 then
             centerClick()
+
             lastClick = tick()
         end
 
-        task.wait(0.05)
+        task.wait(0.03)
     end
 end
 
 --==================================================
--- MASTER FARM LOOP (SÜREKLİ DÖNGÜ)
+-- ANA FARM LOOP
 --==================================================
 
 task.spawn(function()
+
     while true do
-        task.wait(0.5)
 
         if activeFarm then
-            local currentFarm = activeFarm
-            local currentToken = farmCycleToken
 
-            runBoss(currentFarm, currentToken)
+            local selectedFarm =
+                activeFarm
+
+            runBoss(
+                selectedFarm
+            )
+
+            -- Farm hâlâ aynıysa
+            -- sonraki cycle'a geç
+            if activeFarm ==
+                selectedFarm then
+
+                if farmStartTime then
+
+                    totalFarmTime +=
+                        tick() -
+                        farmStartTime
+                end
+
+                farmStartTime =
+                    tick()
+
+                task.wait(0.5)
+            end
+
+        else
+
+            task.wait(0.2)
         end
     end
 end)
