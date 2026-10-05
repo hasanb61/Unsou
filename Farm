@@ -36,6 +36,12 @@ local safePosition = CFrame.new(
     -1764.2423095703125
 )
 
+local xpCapsuleNpcPosition = CFrame.new(
+    -2473.444091796875,
+    763.4141235351562,
+    -587.9708251953125
+)
+
 --==================================================
 -- ESKİ GUI TEMİZLE
 --==================================================
@@ -124,6 +130,7 @@ local farmConfigs = {
 
 local activeFarm = nil
 local autoLevel = false
+local farmNeedsTeleport = true
 
 local activeTouchCount = 0
 local userTouchingScreen = false
@@ -950,6 +957,7 @@ local function activateFarm(farmName)
         pauseFarmTimer()
         activeFarm = nil
         farmStartTime = nil
+        farmNeedsTeleport = true
 
         resetBossButtons()
 
@@ -961,6 +969,7 @@ local function activateFarm(farmName)
     end
 
     activeFarm = farmName
+    farmNeedsTeleport = true
     resumeFarmTimer()
 
     resetBossButtons()
@@ -1111,6 +1120,7 @@ autoLevelButton.MouseButton1Click:Connect(function()
         pauseFarmTimer()
         activeFarm = nil
         farmStartTime = nil
+        farmNeedsTeleport = true
 
         resetBossButtons()
         setAutoLevelState(false)
@@ -1133,6 +1143,7 @@ autoLevelButton.MouseButton1Click:Connect(function()
             end
 
             activeFarm = target
+            farmNeedsTeleport = true
             resumeFarmTimer()
 
             resetBossButtons()
@@ -1142,6 +1153,91 @@ autoLevelButton.MouseButton1Click:Connect(function()
                 true
             )
         end
+    end
+end)
+
+local npcTeleportButton =
+    Instance.new("TextButton")
+
+npcTeleportButton.Size =
+    UDim2.new(0, 165, 0, 42)
+
+npcTeleportButton.Position =
+    UDim2.new(0, 180, 0, 156)
+
+npcTeleportButton.BackgroundColor3 =
+    OFF_COLOR
+
+npcTeleportButton.TextColor3 =
+    OFF_TEXT
+
+npcTeleportButton.Text =
+    "XP NPC'YE IŞINLAN"
+
+npcTeleportButton.TextSize = 10
+npcTeleportButton.Font =
+    Enum.Font.GothamBold
+
+npcTeleportButton.BorderSizePixel = 0
+npcTeleportButton.Parent = farmContainer
+
+local npcTeleportCorner =
+    Instance.new("UICorner")
+
+npcTeleportCorner.CornerRadius =
+    UDim.new(0, 10)
+
+npcTeleportCorner.Parent =
+    npcTeleportButton
+
+npcTeleportButton.MouseButton1Click:Connect(function()
+    autoLevel = false
+
+    if activeFarm then
+        pauseFarmTimer()
+    end
+
+    activeFarm = nil
+    farmStartTime = nil
+    farmNeedsTeleport = true
+
+    resetBossButtons()
+    setAutoLevelState(false)
+
+    local succeeded, err =
+        pcall(function()
+            local character = player.Character
+
+            if not character then
+                character = player.CharacterAdded:Wait()
+            end
+
+            local root =
+                character:WaitForChild(
+                    "HumanoidRootPart",
+                    10
+                )
+
+            if not root then
+                error("HumanoidRootPart was not found")
+            end
+
+            root.AssemblyLinearVelocity =
+                Vector3.new(0, 0, 0)
+
+            root.CFrame =
+                xpCapsuleNpcPosition
+        end)
+
+    if not succeeded then
+        warn("NPC teleport failed: " .. tostring(err))
+        npcTeleportButton.Text =
+            "IŞINLANMA HATASI"
+
+        task.wait(2)
+
+        npcTeleportButton.Text =
+            "XP NPC'YE IŞINLAN"
     end
 end)
 
@@ -1432,6 +1528,7 @@ task.spawn(function()
                 end
 
                 activeFarm = target
+                farmNeedsTeleport = true
                 resumeFarmTimer()
 
                 resetBossButtons()
@@ -1486,6 +1583,44 @@ local function goSafe()
     end)
 end
 
+local function teleportToPortal(portal, farmName)
+    if activeFarm ~= farmName then
+        return false
+    end
+
+    local succeeded, err =
+        pcall(function()
+            local character = player.Character
+
+            if not character then
+                character = player.CharacterAdded:Wait()
+            end
+
+            local root =
+                character:WaitForChild(
+                    "HumanoidRootPart",
+                    10
+                )
+
+            if not root or activeFarm ~= farmName then
+                return false
+            end
+
+            root.AssemblyLinearVelocity =
+                Vector3.new(0, 0, 0)
+
+            root.CFrame = portal
+            return true
+        end)
+
+    if not succeeded then
+        warn("Portal teleport failed: " .. tostring(err))
+        return false
+    end
+
+    return err == true
+end
+
 --==================================================
 -- BOSS FARM
 --==================================================
@@ -1520,27 +1655,22 @@ local function runBoss(
         bossAlreadyPresent = findBossModel(config.bossName) ~= nil
     end
 
-    if not bossAlreadyPresent then
-        pcall(function()
+    if farmNeedsTeleport or not bossAlreadyPresent then
+        local teleported =
+            teleportToPortal(
+                config.portal,
+                farmName
+            )
 
-            local char =
-                player.Character
+        if activeFarm ~= farmName then
+            return
+        end
 
-            local root =
-                char and
-                char:FindFirstChild(
-                    "HumanoidRootPart"
-                )
-
-            if root then
-
-                root.AssemblyLinearVelocity =
-                    Vector3.new(0, 0, 0)
-
-                root.CFrame =
-                    config.portal
-            end
-        end)
+        if not teleported then
+            farmNeedsTeleport = true
+            task.wait(1)
+            return
+        end
     end
 
     --==============================================
@@ -1565,20 +1695,59 @@ local function runBoss(
     end
 
     --==============================================
-    -- BOSS SNAPSHOT
+    -- HEDEF BOSSU BEKLE
     --==============================================
 
-    bossBeforeSpecial = nil
-    offHeadSlot = nil
+    local boss =
+        findBossModel(config.bossName)
+
+    local searchStart =
+        tick()
 
     if config.offHeadDeathBySlot then
-        offHeadSlot = findOffHeadSlot()
+        local slotSearchStart = tick()
+
+        while not offHeadSlot
+            and activeFarm == farmName
+            and tick() - slotSearchStart < 60 do
+
+            task.wait(0.15)
+
+            offHeadSlot = findOffHeadSlot()
+        end
+
+        if activeFarm ~= farmName then
+            return
+        end
+
+        if not offHeadSlot then
+            farmNeedsTeleport = true
+            return
+        end
+
     else
-        bossBeforeSpecial =
-            findBossModel(
-                config.bossName
-            )
+        while not boss
+            and activeFarm == farmName
+            and tick() - searchStart < 60 do
+
+            task.wait(0.15)
+
+            boss =
+                findBossModel(config.bossName)
+        end
+
+        if activeFarm ~= farmName then
+            return
+        end
+
+        if not boss then
+            farmNeedsTeleport = true
+            return
+        end
     end
+
+    farmNeedsTeleport = false
+    bossBeforeSpecial = boss
 
     --==============================================
     -- UNDYNE MANTIĞI
@@ -1617,6 +1786,8 @@ local function runBoss(
                 farmName
             )
 
+            farmNeedsTeleport = true
+
             task.wait(2)
 
             goSafe()
@@ -1634,58 +1805,12 @@ local function runBoss(
                 farmName
             )
 
+            farmNeedsTeleport = true
+
             task.wait(2)
 
             goSafe()
 
-            return
-        end
-    end
-
-    --==============================================
-    -- GERÇEK BOSSU / OFF HEAD SLOTUNU BEKLE
-    --==============================================
-
-    local boss =
-        findBossModel(
-            config.bossName
-        )
-
-    local searchStart =
-        tick()
-
-    if config.offHeadDeathBySlot then
-
-        local slotSearchStart = tick()
-
-        while not offHeadSlot
-            and activeFarm == farmName
-            and tick() - slotSearchStart < 60 do
-
-            task.wait(0.15)
-
-            offHeadSlot = findOffHeadSlot()
-        end
-
-        if activeFarm ~= farmName then
-            return
-        end
-
-    else
-
-        while not boss
-            and activeFarm == farmName
-            and tick() - searchStart < 60 do
-
-            task.wait(0.15)
-
-            boss =
-                findBossModel(
-                    config.bossName
-                )
-        end
-
-        if activeFarm ~= farmName then
             return
         end
     end
@@ -1713,6 +1838,8 @@ local function runBoss(
                     farmName
                 )
 
+                farmNeedsTeleport = true
+
                 task.wait(2)
 
                 goSafe()
@@ -1733,6 +1860,8 @@ local function runBoss(
                 registerKill(
                     farmName
                 )
+
+                farmNeedsTeleport = true
 
                 task.wait(2)
 
