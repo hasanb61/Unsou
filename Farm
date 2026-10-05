@@ -104,6 +104,7 @@ local farmConfigs = {
 
         -- UNDYNE İLE AYNI
         special = true,
+        offHeadDeathBySlot = true,
 
         heal = false
     },
@@ -140,6 +141,19 @@ local kills = {
 
 local farmStartTime = nil
 local totalFarmTime = 0
+
+local function pauseFarmTimer()
+    if activeFarm and farmStartTime then
+        totalFarmTime += tick() - farmStartTime
+        farmStartTime = nil
+    end
+end
+
+local function resumeFarmTimer()
+    if activeFarm and not farmStartTime then
+        farmStartTime = tick()
+    end
+end
 
 --==================================================
 -- ANTI AFK
@@ -326,6 +340,51 @@ local function findBossModel(bossName)
     end
 
     return nil
+end
+
+--==================================================
+-- OFF HEAD ÖZEL SLOT BULMA
+-- Yapı: ActiveBosses > SlotX > Bosses > 1 > OOF head
+-- Combat Undyne ile aynı kalır; sadece ölüm algısı özeldir.
+--==================================================
+
+local function findOffHeadSlot()
+    local activeBosses = workspace:FindFirstChild("ActiveBosses")
+
+    if not activeBosses then
+        return nil
+    end
+
+    for _, slot in ipairs(activeBosses:GetChildren()) do
+        local bossesFolder = slot:FindFirstChild("Bosses")
+
+        if bossesFolder then
+            for _, obj in ipairs(bossesFolder:GetDescendants()) do
+                if string.lower(tostring(obj.Name)) == "oof head"
+                    or string.lower(tostring(obj.Name)) == "oofhead"
+                    or string.lower(tostring(obj.Name)) == "oof_head" then
+
+                    return slot
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+local function offHeadSlotExists(slot)
+    if not slot then
+        return false
+    end
+
+    local activeBosses = workspace:FindFirstChild("ActiveBosses")
+
+    if not activeBosses then
+        return false
+    end
+
+    return slot.Parent == activeBosses
 end
 
 --==================================================
@@ -875,6 +934,8 @@ local function resetBossButtons()
     end
 end
 
+local setAutoLevelState
+
 --==================================================
 -- BOSS AKTİFLEŞTİR
 --==================================================
@@ -882,15 +943,11 @@ end
 local function activateFarm(farmName)
 
     autoLevel = false
+    setAutoLevelState(false)
 
     if activeFarm == farmName then
 
-        if farmStartTime then
-
-            totalFarmTime +=
-                tick() - farmStartTime
-        end
-
+        pauseFarmTimer()
         activeFarm = nil
         farmStartTime = nil
 
@@ -899,14 +956,12 @@ local function activateFarm(farmName)
         return
     end
 
-    if farmStartTime then
-
-        totalFarmTime +=
-            tick() - farmStartTime
+    if activeFarm and farmStartTime then
+        pauseFarmTimer()
     end
 
     activeFarm = farmName
-    farmStartTime = tick()
+    resumeFarmTimer()
 
     resetBossButtons()
 
@@ -1021,7 +1076,7 @@ autoLevelCorner.CornerRadius =
 autoLevelCorner.Parent =
     autoLevelButton
 
-local function setAutoLevelState(on)
+setAutoLevelState = function(on)
 
     if on then
 
@@ -1053,11 +1108,7 @@ autoLevelButton.MouseButton1Click:Connect(function()
 
         autoLevel = false
 
-        if farmStartTime then
-            totalFarmTime +=
-                tick() - farmStartTime
-        end
-
+        pauseFarmTimer()
         activeFarm = nil
         farmStartTime = nil
 
@@ -1077,8 +1128,12 @@ autoLevelButton.MouseButton1Click:Connect(function()
 
         if target then
 
+            if activeFarm and farmStartTime then
+                pauseFarmTimer()
+            end
+
             activeFarm = target
-            farmStartTime = tick()
+            resumeFarmTimer()
 
             resetBossButtons()
 
@@ -1372,14 +1427,12 @@ task.spawn(function()
             if target
                 and target ~= activeFarm then
 
-                if farmStartTime then
-
-                    totalFarmTime +=
-                        tick() - farmStartTime
+                if activeFarm and farmStartTime then
+                    pauseFarmTimer()
                 end
 
                 activeFarm = target
-                farmStartTime = tick()
+                resumeFarmTimer()
 
                 resetBossButtons()
 
@@ -1441,6 +1494,10 @@ local function runBoss(
     farmName
 )
 
+    if activeFarm ~= farmName then
+        return
+    end
+
     local config =
         farmConfigs[farmName]
 
@@ -1448,30 +1505,43 @@ local function runBoss(
         return
     end
 
+    local bossBeforeSpecial = nil
+    local offHeadSlot = nil
+
     --==============================================
-    -- PORTALA GİT
+    -- PORTALA GİT (SADECE BOSS YOKSA)
     --==============================================
 
-    pcall(function()
+    local bossAlreadyPresent = false
 
-        local char =
-            player.Character
+    if config.offHeadDeathBySlot then
+        bossAlreadyPresent = findOffHeadSlot() ~= nil
+    else
+        bossAlreadyPresent = findBossModel(config.bossName) ~= nil
+    end
 
-        local root =
-            char and
-            char:FindFirstChild(
-                "HumanoidRootPart"
-            )
+    if not bossAlreadyPresent then
+        pcall(function()
 
-        if root then
+            local char =
+                player.Character
 
-            root.AssemblyLinearVelocity =
-                Vector3.new(0, 0, 0)
+            local root =
+                char and
+                char:FindFirstChild(
+                    "HumanoidRootPart"
+                )
 
-            root.CFrame =
-                config.portal
-        end
-    end)
+            if root then
+
+                root.AssemblyLinearVelocity =
+                    Vector3.new(0, 0, 0)
+
+                root.CFrame =
+                    config.portal
+            end
+        end)
+    end
 
     --==============================================
     -- 6 SANİYE SHIELD
@@ -1498,10 +1568,17 @@ local function runBoss(
     -- BOSS SNAPSHOT
     --==============================================
 
-    local bossBeforeSpecial =
-        findBossModel(
-            config.bossName
-        )
+    bossBeforeSpecial = nil
+    offHeadSlot = nil
+
+    if config.offHeadDeathBySlot then
+        offHeadSlot = findOffHeadSlot()
+    else
+        bossBeforeSpecial =
+            findBossModel(
+                config.bossName
+            )
+    end
 
     --==============================================
     -- UNDYNE MANTIĞI
@@ -1530,7 +1607,24 @@ local function runBoss(
     -- 5 TEK BAŞINA ÖLDÜRDÜYSE
     --==============================================
 
-    if bossBeforeSpecial then
+    if config.offHeadDeathBySlot then
+
+        -- Off Head'ta sadece slotun gerçekten kaybolması ölüm kabul edilir.
+        -- 5 yeteneği öldürdüyse burada yakala.
+        if offHeadSlot and not offHeadSlotExists(offHeadSlot) then
+
+            registerKill(
+                farmName
+            )
+
+            task.wait(2)
+
+            goSafe()
+
+            return
+        end
+
+    elseif bossBeforeSpecial then
 
         if not findBossModel(
             config.bossName
@@ -1549,7 +1643,7 @@ local function runBoss(
     end
 
     --==============================================
-    -- GERÇEK BOSSU BEKLE
+    -- GERÇEK BOSSU / OFF HEAD SLOTUNU BEKLE
     --==============================================
 
     local boss =
@@ -1560,47 +1654,92 @@ local function runBoss(
     local searchStart =
         tick()
 
-    while not boss
-        and activeFarm == farmName
-        and tick() - searchStart < 60 do
+    if config.offHeadDeathBySlot then
 
-        task.wait(0.15)
+        local slotSearchStart = tick()
 
-        boss =
-            findBossModel(
-                config.bossName
-            )
-    end
+        while not offHeadSlot
+            and activeFarm == farmName
+            and tick() - slotSearchStart < 60 do
 
-    if activeFarm ~= farmName then
-        return
+            task.wait(0.15)
+
+            offHeadSlot = findOffHeadSlot()
+        end
+
+        if activeFarm ~= farmName then
+            return
+        end
+
+    else
+
+        while not boss
+            and activeFarm == farmName
+            and tick() - searchStart < 60 do
+
+            task.wait(0.15)
+
+            boss =
+                findBossModel(
+                    config.bossName
+                )
+        end
+
+        if activeFarm ~= farmName then
+            return
+        end
     end
 
     --==============================================
     -- NORMAL AUTO CLICK
+    -- Off Head'ın saldırısı Undyne ile birebir aynı:
+    -- equipSword() + centerClick()
     --==============================================
 
     local lastClick = 0
 
     while activeFarm == farmName do
 
-        boss =
-            findBossModel(
-                config.bossName
-            )
-
-        -- GERÇEK MODEL YOKSA BOSS ÖLDÜ
-        if not boss then
-
-            registerKill(
-                farmName
-            )
-
-            task.wait(2)
-
-            goSafe()
-
+        if activeFarm ~= farmName then
             return
+        end
+
+        if config.offHeadDeathBySlot then
+
+            -- Off Head ölümü = yakalanan ActiveBosses slotunun yok olması
+            if not offHeadSlotExists(offHeadSlot) then
+
+                registerKill(
+                    farmName
+                )
+
+                task.wait(2)
+
+                goSafe()
+
+                return
+            end
+
+        else
+
+            boss =
+                findBossModel(
+                    config.bossName
+                )
+
+            -- Diğer bossların mevcut ölüm mantığı aynen kalır.
+            if not boss then
+
+                registerKill(
+                    farmName
+                )
+
+                task.wait(2)
+
+                goSafe()
+
+                return
+            end
         end
 
         if tick() - lastClick >= 0.10 then
@@ -1636,15 +1775,9 @@ task.spawn(function()
             if activeFarm ==
                 selectedFarm then
 
-                if farmStartTime then
-
-                    totalFarmTime +=
-                        tick() -
-                        farmStartTime
+                if not farmStartTime then
+                    farmStartTime = tick()
                 end
-
-                farmStartTime =
-                    tick()
 
                 task.wait(0.5)
             end
