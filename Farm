@@ -148,6 +148,17 @@ local kills = {
 
 local farmStartTime = nil
 local totalFarmTime = 0
+local statusLabel = nil
+local currentStatus = "Beklemede"
+
+local function setStatus(message)
+    currentStatus = message
+
+    if statusLabel then
+        statusLabel.Text =
+            "DURUM: " .. currentStatus
+    end
+end
 
 local function pauseFarmTimer()
     if activeFarm and farmStartTime then
@@ -958,6 +969,7 @@ local function activateFarm(farmName)
         activeFarm = nil
         farmStartTime = nil
         farmNeedsTeleport = true
+        setStatus("Farm durduruldu")
 
         resetBossButtons()
 
@@ -971,6 +983,10 @@ local function activateFarm(farmName)
     activeFarm = farmName
     farmNeedsTeleport = true
     resumeFarmTimer()
+    setStatus(
+        farmConfigs[farmName].displayName
+        .. " seçildi; portal bekleniyor"
+    )
 
     resetBossButtons()
 
@@ -1121,6 +1137,7 @@ autoLevelButton.MouseButton1Click:Connect(function()
         activeFarm = nil
         farmStartTime = nil
         farmNeedsTeleport = true
+        setStatus("Auto Level durduruldu")
 
         resetBossButtons()
         setAutoLevelState(false)
@@ -1145,6 +1162,10 @@ autoLevelButton.MouseButton1Click:Connect(function()
             activeFarm = target
             farmNeedsTeleport = true
             resumeFarmTimer()
+            setStatus(
+                farmConfigs[target].displayName
+                .. " seçildi; portal bekleniyor"
+            )
 
             resetBossButtons()
 
@@ -1152,6 +1173,8 @@ autoLevelButton.MouseButton1Click:Connect(function()
                 target,
                 true
             )
+        else
+            setStatus("Level 305 altında; hedef boss yok")
         end
     end
 end)
@@ -1163,7 +1186,7 @@ npcTeleportButton.Size =
     UDim2.new(0, 165, 0, 42)
 
 npcTeleportButton.Position =
-    UDim2.new(0, 180, 0, 156)
+    UDim2.new(0, 360, 0, 156)
 
 npcTeleportButton.BackgroundColor3 =
     OFF_COLOR
@@ -1200,6 +1223,7 @@ npcTeleportButton.MouseButton1Click:Connect(function()
     activeFarm = nil
     farmStartTime = nil
     farmNeedsTeleport = true
+    setStatus("XP NPC konumuna ışınlanıyor")
 
     resetBossButtons()
     setAutoLevelState(false)
@@ -1231,6 +1255,7 @@ npcTeleportButton.MouseButton1Click:Connect(function()
 
     if not succeeded then
         warn("NPC teleport failed: " .. tostring(err))
+        setStatus("NPC teleport başarısız")
         npcTeleportButton.Text =
             "IŞINLANMA HATASI"
 
@@ -1238,6 +1263,8 @@ npcTeleportButton.MouseButton1Click:Connect(function()
 
         npcTeleportButton.Text =
             "XP NPC'YE IŞINLAN"
+    else
+        setStatus("XP NPC konumuna gidildi")
     end
 end)
 
@@ -1278,6 +1305,40 @@ farmInfoCorner.CornerRadius =
 
 farmInfoCorner.Parent =
     farmInfo
+
+statusLabel =
+    Instance.new("TextLabel")
+
+statusLabel.Size =
+    UDim2.new(0, 345, 0, 42)
+
+statusLabel.Position =
+    UDim2.new(0, 0, 0, 156)
+
+statusLabel.BackgroundColor3 =
+    Color3.fromRGB(21, 21, 27)
+
+statusLabel.TextColor3 =
+    Color3.fromRGB(220, 220, 230)
+
+statusLabel.Text =
+    "DURUM: " .. currentStatus
+
+statusLabel.TextSize = 10
+statusLabel.Font =
+    Enum.Font.GothamSemibold
+
+statusLabel.TextWrapped = true
+statusLabel.Parent = farmContainer
+
+local statusCorner =
+    Instance.new("UICorner")
+
+statusCorner.CornerRadius =
+    UDim.new(0, 10)
+
+statusCorner.Parent =
+    statusLabel
 
 --==================================================
 -- SETTINGS SAYFASI
@@ -1530,6 +1591,10 @@ task.spawn(function()
                 activeFarm = target
                 farmNeedsTeleport = true
                 resumeFarmTimer()
+                setStatus(
+                    farmConfigs[target].displayName
+                    .. " seçildi; portal bekleniyor"
+                )
 
                 resetBossButtons()
 
@@ -1637,6 +1702,7 @@ local function runBoss(
         farmConfigs[farmName]
 
     if not config then
+        setStatus("Farm ayarı bulunamadı")
         return
     end
 
@@ -1656,6 +1722,10 @@ local function runBoss(
     end
 
     if farmNeedsTeleport or not bossAlreadyPresent then
+        setStatus(
+            config.displayName .. " portalına ışınlanıyor"
+        )
+
         local teleported =
             teleportToPortal(
                 config.portal,
@@ -1668,10 +1738,13 @@ local function runBoss(
 
         if not teleported then
             farmNeedsTeleport = true
+            setStatus("Teleport başarısız; yeniden denenecek")
             task.wait(1)
             return
         end
     end
+
+    setStatus("Kalkan için 6 saniye bekleniyor")
 
     --==============================================
     -- 6 SANİYE SHIELD
@@ -1698,6 +1771,8 @@ local function runBoss(
     -- HEDEF BOSSU BEKLE
     --==============================================
 
+    setStatus(config.displayName .. " bossu aranıyor")
+
     local boss =
         findBossModel(config.bossName)
 
@@ -1722,6 +1797,7 @@ local function runBoss(
 
         if not offHeadSlot then
             farmNeedsTeleport = true
+            setStatus("OffHead slotu bulunamadı; yeniden denenecek")
             return
         end
 
@@ -1742,12 +1818,16 @@ local function runBoss(
 
         if not boss then
             farmNeedsTeleport = true
+            setStatus(
+                config.displayName .. " bulunamadı; yeniden denenecek"
+            )
             return
         end
     end
 
     farmNeedsTeleport = false
     bossBeforeSpecial = boss
+    setStatus(config.displayName .. " bulundu; saldırı başlıyor")
 
     --==============================================
     -- UNDYNE MANTIĞI
@@ -1756,6 +1836,7 @@ local function runBoss(
 
     if config.special then
 
+        setStatus("Özel yetenek kullanılıyor")
         useSpecialAbility()
 
         if activeFarm ~= farmName then
@@ -1772,6 +1853,8 @@ local function runBoss(
         equipSword()
     end
 
+    setStatus(config.displayName .. " ile savaşılıyor")
+
     --==============================================
     -- 5 TEK BAŞINA ÖLDÜRDÜYSE
     --==============================================
@@ -1787,6 +1870,7 @@ local function runBoss(
             )
 
             farmNeedsTeleport = true
+            setStatus("Boss yenildi; güvenli konuma dönülüyor")
 
             task.wait(2)
 
@@ -1806,6 +1890,7 @@ local function runBoss(
             )
 
             farmNeedsTeleport = true
+            setStatus("Boss yenildi; güvenli konuma dönülüyor")
 
             task.wait(2)
 
@@ -1839,6 +1924,7 @@ local function runBoss(
                 )
 
                 farmNeedsTeleport = true
+                setStatus("Boss yenildi; güvenli konuma dönülüyor")
 
                 task.wait(2)
 
@@ -1862,6 +1948,7 @@ local function runBoss(
                 )
 
                 farmNeedsTeleport = true
+                setStatus("Boss yenildi; güvenli konuma dönülüyor")
 
                 task.wait(2)
 
