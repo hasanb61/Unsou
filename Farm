@@ -9,16 +9,36 @@ local player = Players.LocalPlayer
 -- PORTALLAR
 --==================================================
 
-local undynePortal = CFrame.new(-2425.2763671875, 533.9141235351562, -589.755859375)
-local outertalePortal = CFrame.new(-2384.70654296875, 533.9114990234375, -580.0492553710938)
-local hyperdustPortal = CFrame.new(-2402.91357421875, 533.9037475585938, -574.0745849609375)
-local bobPortal = CFrame.new(-8358.57, 1256.59, -860.11)
-local offHeadPortal = CFrame.new(-2443.76, 533.91, -442.76)
+local undynePortal = CFrame.new(
+    -2425.594482421875,
+    533.9141235351562,
+    -588.2127685546875
+)
+local outertalePortal = CFrame.new(
+    -2383.7333984375,
+    533.9141235351562,
+    -578.871337890625
+)
+local hyperdustPortal = CFrame.new(
+    -2403.167236328125,
+    533.9141235351562,
+    -572.8255004882812
+)
+local bobPortal = CFrame.new(
+    -8357.2255859375,
+    1256.5865478515625,
+    -860.2608642578125
+)
+local offHeadPortal = CFrame.new(
+    -2443.704345703125,
+    533.9141235351562,
+    -443.5326843261719
+)
 
 local susportalPortal = CFrame.new(
-    -427.321381,
-    63.8847389,
-    -1285.31506,
+    -427.47149658203125,
+    63.88474655151367,
+    -1284.06689453125,
     -0.97381407,
     2.72724563e-08,
     0.227345869,
