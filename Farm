@@ -1762,6 +1762,8 @@ local function runBoss(
             task.wait(1)
             return
         end
+
+        pressKey(Enum.KeyCode.W)
     end
 
     setStatus("Waiting 6 seconds for the shield")
