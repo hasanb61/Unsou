@@ -6,7 +6,7 @@ local VirtualUser = game:GetService("VirtualUser")
 local player = Players.LocalPlayer
 
 --==================================================
--- PORTALLAR
+-- PORTALS
 --==================================================
 
 local undynePortal = CFrame.new(
@@ -63,7 +63,7 @@ local xpCapsuleNpcPosition = CFrame.new(
 )
 
 --==================================================
--- ESKİ GUI TEMİZLE
+-- CLEAN UP OLD GUIS
 --==================================================
 
 pcall(function()
@@ -128,7 +128,7 @@ local farmConfigs = {
         bossName = "OOF Head",
         portal = offHeadPortal,
 
-        -- UNDYNE İLE AYNI
+        -- Same behavior as Undyne
         special = true,
         offHeadDeathBySlot = true,
 
@@ -145,7 +145,7 @@ local farmConfigs = {
 }
 
 --==================================================
--- DURUM
+-- STATE
 --==================================================
 
 local activeFarm = nil
@@ -169,14 +169,14 @@ local kills = {
 local farmStartTime = nil
 local totalFarmTime = 0
 local statusLabel = nil
-local currentStatus = "Beklemede"
+local currentStatus = "Idle"
 
 local function setStatus(message)
     currentStatus = message
 
     if statusLabel then
         statusLabel.Text =
-            "DURUM: " .. currentStatus
+            "STATUS: " .. currentStatus
     end
 end
 
@@ -246,7 +246,7 @@ task.spawn(function()
 end)
 
 --==================================================
--- TUŞ FONKSİYONLARI
+-- KEY INPUT FUNCTIONS
 --==================================================
 
 local function pressKey(key)
@@ -277,7 +277,7 @@ local function equipSword()
 end
 
 --==================================================
--- 5 ÖZEL YETENEK
+-- SPECIAL ABILITY ON KEY 5
 --==================================================
 
 local function useSpecialAbility()
@@ -337,7 +337,7 @@ local function useSpecialAbility()
 end
 
 --==================================================
--- GERÇEK BOSS MODELİNİ BUL
+-- FIND THE BOSS MODEL
 --==================================================
 
 local function findBossModel(bossName)
@@ -381,9 +381,9 @@ local function findBossModel(bossName)
 end
 
 --==================================================
--- OFF HEAD ÖZEL SLOT BULMA
--- Yapı: ActiveBosses > SlotX > Bosses > 1 > OOF head
--- Combat Undyne ile aynı kalır; sadece ölüm algısı özeldir.
+-- FIND THE SPECIAL OFF HEAD SLOT
+-- Structure: ActiveBosses > SlotX > Bosses > 1 > OOF head
+-- Combat stays the same as Undyne; only death detection differs.
 --==================================================
 
 local function findOffHeadSlot()
@@ -426,7 +426,7 @@ local function offHeadSlotExists(slot)
 end
 
 --==================================================
--- MOBİL TOUCH
+-- MOBILE TOUCH INPUT
 --==================================================
 
 UIS.TouchStarted:Connect(function()
@@ -490,7 +490,7 @@ local function centerClick()
 end
 
 --==================================================
--- HP
+-- HEALTH
 --==================================================
 
 local function getHealthPercent()
@@ -669,7 +669,7 @@ local function getLevel()
 end
 
 --==================================================
--- AUTO LEVEL BOSS SEÇİMİ
+-- SELECT BOSS FOR AUTO LEVEL
 --==================================================
 
 local function getBossForLevel(level)
@@ -709,7 +709,7 @@ screenGui.Name =
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player.PlayerGui
 
--- ANA PANEL
+-- MAIN PANEL
 local frame =
     Instance.new("Frame")
 
@@ -745,7 +745,7 @@ frameStroke.Thickness = 1.5
 frameStroke.Parent = frame
 
 --==================================================
--- BAŞLIK
+-- TITLE
 --==================================================
 
 local title =
@@ -791,7 +791,7 @@ titleCover.BorderSizePixel = 0
 titleCover.Parent = title
 
 --==================================================
--- SAYFA BUTONLARI
+-- PAGE BUTTONS
 --==================================================
 
 local farmPageButton =
@@ -840,7 +840,7 @@ settingsPageButton.BackgroundColor3 =
     Color3.fromRGB(27, 27, 34)
 
 settingsPageButton.Text =
-    "AYARLAR"
+    "SETTINGS"
 
 settingsPageButton.TextColor3 =
     Color3.fromRGB(180, 180, 190)
@@ -877,7 +877,7 @@ farmContainer.BackgroundTransparency = 1
 farmContainer.Parent = frame
 
 --==================================================
--- BOSS BUTTON RENKLERİ
+-- BOSS BUTTON COLORS
 --==================================================
 
 local OFF_COLOR =
@@ -914,7 +914,7 @@ local buttonPositions = {
 }
 
 --==================================================
--- BUTON TEXT DURUMU
+-- BUTTON TEXT STATE
 --==================================================
 
 local function setButtonState(
@@ -936,7 +936,7 @@ local function setButtonState(
 
         button.Text =
             config.displayName ..
-            " [AÇIK]"
+            " [ON]"
 
         button.BackgroundColor3 =
             ON_COLOR
@@ -948,7 +948,7 @@ local function setButtonState(
 
         button.Text =
             config.displayName ..
-            " [KAPALI]"
+            " [OFF]"
 
         button.BackgroundColor3 =
             OFF_COLOR
@@ -959,7 +959,7 @@ local function setButtonState(
 end
 
 --==================================================
--- TÜM BUTONLARI RESET
+-- RESET ALL BUTTONS
 --==================================================
 
 local function resetBossButtons()
@@ -975,7 +975,7 @@ end
 local setAutoLevelState
 
 --==================================================
--- BOSS AKTİFLEŞTİR
+-- ACTIVATE BOSS FARM
 --==================================================
 
 local function activateFarm(farmName)
@@ -989,7 +989,7 @@ local function activateFarm(farmName)
         activeFarm = nil
         farmStartTime = nil
         farmNeedsTeleport = true
-        setStatus("Farm durduruldu")
+        setStatus("Farm stopped")
 
         resetBossButtons()
 
@@ -1005,7 +1005,7 @@ local function activateFarm(farmName)
     resumeFarmTimer()
     setStatus(
         farmConfigs[farmName].displayName
-        .. " seçildi; portal bekleniyor"
+        .. " selected; waiting to teleport"
     )
 
     resetBossButtons()
@@ -1017,7 +1017,7 @@ local function activateFarm(farmName)
 end
 
 --==================================================
--- BOSS BUTONLARI
+-- BOSS BUTTONS
 --==================================================
 
 for _, farmName in ipairs(bossOrder) do
@@ -1050,7 +1050,7 @@ for _, farmName in ipairs(bossOrder) do
 
     button.Text =
         config.displayName ..
-        " [KAPALI]"
+        " [OFF]"
 
     button.TextSize = 10
     button.Font = Enum.Font.GothamBold
@@ -1084,7 +1084,7 @@ for _, farmName in ipairs(bossOrder) do
 end
 
 --==================================================
--- AUTO LEVEL BUTONU
+-- AUTO LEVEL BUTTON
 --==================================================
 
 local autoLevelButton =
@@ -1103,7 +1103,7 @@ autoLevelButton.TextColor3 =
     OFF_TEXT
 
 autoLevelButton.Text =
-    "AUTO LEVEL [KAPALI]"
+    "AUTO LEVEL [OFF]"
 
 autoLevelButton.TextSize = 10
 autoLevelButton.Font =
@@ -1126,7 +1126,7 @@ setAutoLevelState = function(on)
     if on then
 
         autoLevelButton.Text =
-            "AUTO LEVEL [AÇIK]"
+            "AUTO LEVEL [ON]"
 
         autoLevelButton.BackgroundColor3 =
             ON_COLOR
@@ -1137,7 +1137,7 @@ setAutoLevelState = function(on)
     else
 
         autoLevelButton.Text =
-            "AUTO LEVEL [KAPALI]"
+            "AUTO LEVEL [OFF]"
 
         autoLevelButton.BackgroundColor3 =
             OFF_COLOR
@@ -1157,7 +1157,7 @@ autoLevelButton.MouseButton1Click:Connect(function()
         activeFarm = nil
         farmStartTime = nil
         farmNeedsTeleport = true
-        setStatus("Auto Level durduruldu")
+        setStatus("Auto Level stopped")
 
         resetBossButtons()
         setAutoLevelState(false)
@@ -1184,7 +1184,7 @@ autoLevelButton.MouseButton1Click:Connect(function()
             resumeFarmTimer()
             setStatus(
                 farmConfigs[target].displayName
-                .. " seçildi; portal bekleniyor"
+                .. " selected; waiting to teleport"
             )
 
             resetBossButtons()
@@ -1194,7 +1194,7 @@ autoLevelButton.MouseButton1Click:Connect(function()
                 true
             )
         else
-            setStatus("Level 305 altında; hedef boss yok")
+            setStatus("Below level 305; no target boss")
         end
     end
 end)
@@ -1215,7 +1215,7 @@ npcTeleportButton.TextColor3 =
     OFF_TEXT
 
 npcTeleportButton.Text =
-    "XP NPC'YE IŞINLAN"
+    "TELEPORT TO XP NPC"
 
 npcTeleportButton.TextSize = 10
 npcTeleportButton.Font =
@@ -1243,7 +1243,7 @@ npcTeleportButton.MouseButton1Click:Connect(function()
     activeFarm = nil
     farmStartTime = nil
     farmNeedsTeleport = true
-    setStatus("XP NPC konumuna ışınlanıyor")
+    setStatus("Teleporting to the XP NPC")
 
     resetBossButtons()
     setAutoLevelState(false)
@@ -1275,21 +1275,21 @@ npcTeleportButton.MouseButton1Click:Connect(function()
 
     if not succeeded then
         warn("NPC teleport failed: " .. tostring(err))
-        setStatus("NPC teleport başarısız")
+        setStatus("NPC teleport failed")
         npcTeleportButton.Text =
-            "IŞINLANMA HATASI"
+            "TELEPORT ERROR"
 
         task.wait(2)
 
         npcTeleportButton.Text =
-            "XP NPC'YE IŞINLAN"
+            "TELEPORT TO XP NPC"
     else
-        setStatus("XP NPC konumuna gidildi")
+        setStatus("Arrived at the XP NPC")
     end
 end)
 
 --==================================================
--- FARM BİLGİ YAZISI
+-- FARM STATUS LABEL
 --==================================================
 
 local farmInfo =
@@ -1308,7 +1308,7 @@ farmInfo.TextColor3 =
     Color3.fromRGB(175, 175, 185)
 
 farmInfo.Text =
-    "Farm kapalı"
+    "Farm inactive"
 
 farmInfo.TextSize = 10
 farmInfo.Font =
@@ -1342,7 +1342,7 @@ statusLabel.TextColor3 =
     Color3.fromRGB(220, 220, 230)
 
 statusLabel.Text =
-    "DURUM: " .. currentStatus
+    "STATUS: " .. currentStatus
 
 statusLabel.TextSize = 10
 statusLabel.Font =
@@ -1361,7 +1361,7 @@ statusCorner.Parent =
     statusLabel
 
 --==================================================
--- SETTINGS SAYFASI
+-- SETTINGS PAGE
 --==================================================
 
 local settingsContainer =
@@ -1416,7 +1416,7 @@ settingsCorner.Parent =
     settingsStats
 
 --==================================================
--- SAYFA DEĞİŞTİRME
+-- SWITCH PAGES
 --==================================================
 
 farmPageButton.MouseButton1Click:Connect(function()
@@ -1535,7 +1535,7 @@ task.spawn(function()
         if activeFarm then
 
             farmInfo.Text =
-                "● AKTİF: " ..
+                "● ACTIVE: " ..
                 farmConfigs[
                     activeFarm
                 ].displayName
@@ -1543,7 +1543,7 @@ task.spawn(function()
         else
 
             farmInfo.Text =
-                "Farm kapalı"
+                "Farm inactive"
         end
 
         settingsStats.Text =
@@ -1555,10 +1555,10 @@ task.spawn(function()
             "\n   GOLD: " ..
             tostring(gold) ..
 
-            "\n\n   TOTAL BOSS KILL: " ..
+            "\n\n   TOTAL BOSS KILLS: " ..
             tostring(totalKills) ..
 
-            "\n\n   UNDYNЕ: " ..
+            "\n\n   UNDYNE: " ..
             tostring(kills.Undyne) ..
 
             "        OUTERTALE: " ..
@@ -1613,7 +1613,7 @@ task.spawn(function()
                 resumeFarmTimer()
                 setStatus(
                     farmConfigs[target].displayName
-                    .. " seçildi; portal bekleniyor"
+                    .. " selected; waiting to teleport"
                 )
 
                 resetBossButtons()
@@ -1628,7 +1628,7 @@ task.spawn(function()
 end)
 
 --==================================================
--- KILL KAYDET
+-- REGISTER KILL
 --==================================================
 
 local function registerKill(farmName)
@@ -1722,7 +1722,7 @@ local function runBoss(
         farmConfigs[farmName]
 
     if not config then
-        setStatus("Farm ayarı bulunamadı")
+        setStatus("Farm configuration not found")
         return
     end
 
@@ -1730,7 +1730,7 @@ local function runBoss(
     local offHeadSlot = nil
 
     --==============================================
-    -- PORTALA GİT (SADECE BOSS YOKSA)
+    -- GO TO PORTAL (ONLY IF THE BOSS IS NOT PRESENT)
     --==============================================
 
     local bossAlreadyPresent = false
@@ -1743,7 +1743,7 @@ local function runBoss(
 
     if farmNeedsTeleport or not bossAlreadyPresent then
         setStatus(
-            config.displayName .. " portalına ışınlanıyor"
+            "Teleporting to the " .. config.displayName .. " portal"
         )
 
         local teleported =
@@ -1758,16 +1758,16 @@ local function runBoss(
 
         if not teleported then
             farmNeedsTeleport = true
-            setStatus("Teleport başarısız; yeniden denenecek")
+            setStatus("Teleport failed; retrying")
             task.wait(1)
             return
         end
     end
 
-    setStatus("Kalkan için 6 saniye bekleniyor")
+    setStatus("Waiting 6 seconds for the shield")
 
     --==============================================
-    -- 6 SANİYE SHIELD
+    -- 6-SECOND SHIELD
     --==============================================
 
     local shieldTime = 0
@@ -1788,10 +1788,10 @@ local function runBoss(
     end
 
     --==============================================
-    -- HEDEF BOSSU BEKLE
+    -- WAIT FOR THE TARGET BOSS
     --==============================================
 
-    setStatus(config.displayName .. " bossu aranıyor")
+    setStatus("Searching for " .. config.displayName)
 
     local boss =
         findBossModel(config.bossName)
@@ -1817,7 +1817,7 @@ local function runBoss(
 
         if not offHeadSlot then
             farmNeedsTeleport = true
-            setStatus("OffHead slotu bulunamadı; yeniden denenecek")
+            setStatus("OffHead slot not found; retrying")
             return
         end
 
@@ -1839,7 +1839,7 @@ local function runBoss(
         if not boss then
             farmNeedsTeleport = true
             setStatus(
-                config.displayName .. " bulunamadı; yeniden denenecek"
+                config.displayName .. " not found; retrying"
             )
             return
         end
@@ -1847,23 +1847,23 @@ local function runBoss(
 
     farmNeedsTeleport = false
     bossBeforeSpecial = boss
-    setStatus(config.displayName .. " bulundu; saldırı başlıyor")
+    setStatus(config.displayName .. " found; starting attack")
 
     --==============================================
-    -- UNDYNE MANTIĞI
+    -- UNDYNE COMBAT LOGIC
     -- 5 → 1 → CENTER CLICK
     --==============================================
 
     if config.special then
 
-        setStatus("Özel yetenek kullanılıyor")
+        setStatus("Using special ability")
         useSpecialAbility()
 
         if activeFarm ~= farmName then
             return
         end
 
-        -- 5 SONRASI HER ZAMAN 1
+        -- Always press 1 after 5
         equipSword()
 
         task.wait(0.15)
@@ -1873,16 +1873,16 @@ local function runBoss(
         equipSword()
     end
 
-    setStatus(config.displayName .. " ile savaşılıyor")
+    setStatus("Fighting " .. config.displayName)
 
     --==============================================
-    -- 5 TEK BAŞINA ÖLDÜRDÜYSE
+    -- CHECK IF KEY 5 ALONE DEFEATED THE BOSS
     --==============================================
 
     if config.offHeadDeathBySlot then
 
-        -- Off Head'ta sadece slotun gerçekten kaybolması ölüm kabul edilir.
-        -- 5 yeteneği öldürdüyse burada yakala.
+        -- For Off Head, only the slot disappearing counts as a kill.
+        -- Detect a kill from the key-5 ability here.
         if offHeadSlot and not offHeadSlotExists(offHeadSlot) then
 
             registerKill(
@@ -1890,7 +1890,7 @@ local function runBoss(
             )
 
             farmNeedsTeleport = true
-            setStatus("Boss yenildi; güvenli konuma dönülüyor")
+            setStatus("Boss defeated; returning to the safe position")
 
             task.wait(2)
 
@@ -1910,7 +1910,7 @@ local function runBoss(
             )
 
             farmNeedsTeleport = true
-            setStatus("Boss yenildi; güvenli konuma dönülüyor")
+            setStatus("Boss defeated; returning to the safe position")
 
             task.wait(2)
 
@@ -1921,8 +1921,8 @@ local function runBoss(
     end
 
     --==============================================
-    -- NORMAL AUTO CLICK
-    -- Off Head'ın saldırısı Undyne ile birebir aynı:
+    -- NORMAL AUTO-CLICK
+    -- Off Head attacks the same way as Undyne:
     -- equipSword() + centerClick()
     --==============================================
 
@@ -1936,7 +1936,7 @@ local function runBoss(
 
         if config.offHeadDeathBySlot then
 
-            -- Off Head ölümü = yakalanan ActiveBosses slotunun yok olması
+            -- Off Head death = the captured ActiveBosses slot disappearing
             if not offHeadSlotExists(offHeadSlot) then
 
                 registerKill(
@@ -1944,7 +1944,7 @@ local function runBoss(
                 )
 
                 farmNeedsTeleport = true
-                setStatus("Boss yenildi; güvenli konuma dönülüyor")
+                setStatus("Boss defeated; returning to the safe position")
 
                 task.wait(2)
 
@@ -1960,7 +1960,7 @@ local function runBoss(
                     config.bossName
                 )
 
-            -- Diğer bossların mevcut ölüm mantığı aynen kalır.
+            -- Keep the existing death detection for other bosses.
             if not boss then
 
                 registerKill(
@@ -1968,7 +1968,7 @@ local function runBoss(
                 )
 
                 farmNeedsTeleport = true
-                setStatus("Boss yenildi; güvenli konuma dönülüyor")
+                setStatus("Boss defeated; returning to the safe position")
 
                 task.wait(2)
 
@@ -1990,7 +1990,7 @@ local function runBoss(
 end
 
 --==================================================
--- ANA FARM LOOP
+-- MAIN FARM LOOP
 --==================================================
 
 task.spawn(function()
@@ -2006,8 +2006,8 @@ task.spawn(function()
                 selectedFarm
             )
 
-            -- Farm hâlâ aynıysa
-            -- sonraki cycle'a geç
+            -- If the selected farm is unchanged,
+            -- continue to the next cycle.
             if activeFarm ==
                 selectedFarm then
 
