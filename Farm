@@ -174,7 +174,6 @@
     local activeFarm = nil
     local autoLevel = false
     local farmNeedsTeleport = true
-    local watercoolerFiveActivated = false
     local watercoolerNeedsReentry = false
 
     local activeTouchCount = 0
@@ -198,9 +197,7 @@
     local otherWorldStatusLabel = nil
     local currentStatus = "Idle"
     local heldMousePosition = nil
-    local heldKeyCode = nil
     local releaseHeldMouse
-    local releaseHeldKey
     local getWatercoolerAimPosition
 
     local function setStatus(message)
@@ -328,57 +325,6 @@
         return true
     end
 
-    local function holdKeyUntilReleased(key)
-        if heldKeyCode == key then
-            return true
-        end
-
-        if heldKeyCode and not releaseHeldKey() then
-            return false
-        end
-
-        local succeeded, err = pcall(function()
-            VIM:SendKeyEvent(
-                true,
-                key,
-                false,
-                game
-            )
-        end)
-
-        if not succeeded then
-            warn("Could not hold key: " .. tostring(err))
-            return false
-        end
-
-        heldKeyCode = key
-        return true
-    end
-
-    releaseHeldKey = function()
-        if not heldKeyCode then
-            return true
-        end
-
-        local key = heldKeyCode
-        local succeeded, err = pcall(function()
-            VIM:SendKeyEvent(
-                false,
-                key,
-                false,
-                game
-            )
-        end)
-
-        if not succeeded then
-            warn("Could not release held key: " .. tostring(err))
-            return false
-        end
-
-        heldKeyCode = nil
-        return true
-    end
-
     local function holdCenterMouse()
         if heldMousePosition then
             return true
@@ -472,9 +418,7 @@
     end
 
     local function releaseHeldInputs()
-        local mouseReleased = releaseHeldMouse()
-        local keyReleased = releaseHeldKey()
-        return mouseReleased and keyReleased
+        return releaseHeldMouse()
     end
 
     local function equipSword()
@@ -1583,7 +1527,6 @@
             activeFarm = nil
             farmStartTime = nil
             farmNeedsTeleport = true
-            watercoolerFiveActivated = false
             watercoolerNeedsReentry = false
             setStatus("Farm stopped")
 
@@ -1599,7 +1542,6 @@
         releaseHeldInputs()
         activeFarm = farmName
         farmNeedsTeleport = true
-        watercoolerFiveActivated = false
         resumeFarmTimer()
         setStatus(
             farmConfigs[farmName].displayName
@@ -2858,28 +2800,12 @@
                 return false, "cancelled"
             end
 
-            if not watercoolerFiveActivated then
-                if not holdKeyUntilReleased(Enum.KeyCode.Five) then
-                    return false, "could not press and hold key 5"
-                end
-
-                watercoolerFiveActivated = true
-            elseif heldKeyCode ~= Enum.KeyCode.Five
-                and not holdKeyUntilReleased(Enum.KeyCode.Five) then
-                return false, "could not resume holding key 5"
-            end
-
-            if activeFarm ~= farmName then
-                releaseHeldInputs()
-                return false, "cancelled"
-            end
-
             if not holdCenterMouse() then
                 releaseHeldInputs()
                 return false, "could not hold center click"
             end
 
-            setStatus("Near Watercooler; holding 5 and center click")
+            setStatus("Near Watercooler; holding center click")
             return true
         end
 
