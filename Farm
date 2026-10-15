@@ -2,6 +2,8 @@ local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local VIM = game:GetService("VirtualInputManager")
 local VirtualUser = game:GetService("VirtualUser")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
 
@@ -860,6 +862,39 @@ settingsPageCorner.CornerRadius =
 settingsPageCorner.Parent =
     settingsPageButton
 
+local serversPageButton =
+    Instance.new("TextButton")
+
+serversPageButton.Size =
+    UDim2.new(0, 130, 0, 32)
+
+serversPageButton.Position =
+    UDim2.new(0, 295, 0, 58)
+
+serversPageButton.BackgroundColor3 =
+    Color3.fromRGB(27, 27, 34)
+
+serversPageButton.Text =
+    "SUNUCULAR"
+
+serversPageButton.TextColor3 =
+    Color3.fromRGB(180, 180, 190)
+
+serversPageButton.TextSize = 11
+serversPageButton.Font =
+    Enum.Font.GothamBold
+
+serversPageButton.Parent = frame
+
+local serversPageCorner =
+    Instance.new("UICorner")
+
+serversPageCorner.CornerRadius =
+    UDim.new(0, 8)
+
+serversPageCorner.Parent =
+    serversPageButton
+
 --==================================================
 -- FARM CONTAINER
 --==================================================
@@ -1416,43 +1451,255 @@ settingsCorner.Parent =
     settingsStats
 
 --==================================================
+-- SERVERS PAGE
+--==================================================
+
+local serversContainer =
+    Instance.new("Frame")
+
+serversContainer.Size =
+    UDim2.new(1, -30, 1, -105)
+
+serversContainer.Position =
+    UDim2.new(0, 15, 0, 100)
+
+serversContainer.BackgroundTransparency = 1
+serversContainer.Visible = false
+serversContainer.Parent = frame
+
+local serversHeader =
+    Instance.new("TextLabel")
+
+serversHeader.Size =
+    UDim2.new(1, 0, 0, 28)
+
+serversHeader.Position =
+    UDim2.new(0, 0, 0, 0)
+
+serversHeader.BackgroundTransparency = 1
+serversHeader.TextColor3 =
+    Color3.fromRGB(235, 235, 245)
+
+serversHeader.Text =
+    "Sunucular  •  Oyuncu sayısı / kapasite"
+
+serversHeader.TextSize = 12
+serversHeader.Font =
+    Enum.Font.GothamBold
+serversHeader.TextXAlignment =
+    Enum.TextXAlignment.Left
+serversHeader.Parent = serversContainer
+
+local serversScroll =
+    Instance.new("ScrollingFrame")
+
+serversScroll.Size =
+    UDim2.new(1, 0, 1, -34)
+
+serversScroll.Position =
+    UDim2.new(0, 0, 0, 34)
+
+serversScroll.BackgroundColor3 =
+    Color3.fromRGB(21, 21, 27)
+
+serversScroll.BorderSizePixel = 0
+serversScroll.ScrollBarThickness = 5
+serversScroll.CanvasSize =
+    UDim2.new(0, 0, 0, 0)
+serversScroll.AutomaticCanvasSize =
+    Enum.AutomaticSize.Y
+serversScroll.ScrollingDirection =
+    Enum.ScrollingDirection.Y
+serversScroll.Parent = serversContainer
+
+local serversScrollCorner =
+    Instance.new("UICorner")
+serversScrollCorner.CornerRadius =
+    UDim.new(0, 10)
+serversScrollCorner.Parent = serversScroll
+
+local serversListLayout =
+    Instance.new("UIListLayout")
+serversListLayout.Padding =
+    UDim.new(0, 5)
+serversListLayout.SortOrder =
+    Enum.SortOrder.LayoutOrder
+serversListLayout.Parent = serversScroll
+
+local serversListPadding =
+    Instance.new("UIPadding")
+serversListPadding.PaddingTop =
+    UDim.new(0, 7)
+serversListPadding.PaddingBottom =
+    UDim.new(0, 7)
+serversListPadding.PaddingLeft =
+    UDim.new(0, 7)
+serversListPadding.PaddingRight =
+    UDim.new(0, 7)
+serversListPadding.Parent = serversScroll
+
+local serversLoadToken = 0
+
+local function loadServersList()
+    serversLoadToken = serversLoadToken + 1
+    local thisLoadToken = serversLoadToken
+
+    for _, child in ipairs(serversScroll:GetChildren()) do
+        if child:IsA("Frame") or child:IsA("TextLabel") then
+            child:Destroy()
+        end
+    end
+
+    local loadingLabel = Instance.new("TextLabel")
+    loadingLabel.Size = UDim2.new(1, -4, 0, 30)
+    loadingLabel.BackgroundTransparency = 1
+    loadingLabel.TextColor3 = Color3.fromRGB(190, 190, 200)
+    loadingLabel.TextSize = 12
+    loadingLabel.Font = Enum.Font.Gotham
+    loadingLabel.Text = "Sunucular yükleniyor..."
+    loadingLabel.Parent = serversScroll
+
+    task.spawn(function()
+        local placeId = game.PlaceId
+        local url = "https://games.roblox.com/v1/games/" .. tostring(placeId) .. "/servers/Public?sortOrder=Asc&limit=100"
+        local success, response = pcall(function()
+            local body = game:HttpGet(url)
+            return HttpService:JSONDecode(body)
+        end)
+
+        if thisLoadToken ~= serversLoadToken then
+            return
+        end
+
+        loadingLabel:Destroy()
+
+        if not success or not response or type(response.data) ~= "table" then
+            local errorLabel = Instance.new("TextLabel")
+            errorLabel.Size = UDim2.new(1, -4, 0, 42)
+            errorLabel.BackgroundTransparency = 1
+            errorLabel.TextColor3 = Color3.fromRGB(235, 150, 150)
+            errorLabel.TextSize = 12
+            errorLabel.Font = Enum.Font.Gotham
+            errorLabel.TextWrapped = true
+            errorLabel.Text = "Sunucu listesi alınamadı. HTTP isteği desteklenmiyor olabilir."
+            errorLabel.Parent = serversScroll
+            return
+        end
+
+        if #response.data == 0 then
+            local emptyLabel = Instance.new("TextLabel")
+            emptyLabel.Size = UDim2.new(1, -4, 0, 30)
+            emptyLabel.BackgroundTransparency = 1
+            emptyLabel.TextColor3 = Color3.fromRGB(190, 190, 200)
+            emptyLabel.TextSize = 12
+            emptyLabel.Font = Enum.Font.Gotham
+            emptyLabel.Text = "Listelenecek sunucu bulunamadı."
+            emptyLabel.Parent = serversScroll
+            return
+        end
+
+        for index, server in ipairs(response.data) do
+            local isCurrentServer = server.id == game.JobId
+            local item = Instance.new("Frame")
+            item.Name = "ServerRow_" .. tostring(index)
+            item.Size = UDim2.new(1, -4, 0, 38)
+            item.BackgroundColor3 = isCurrentServer
+                and Color3.fromRGB(40, 80, 40)
+                or Color3.fromRGB(35, 35, 42)
+            item.BorderSizePixel = 0
+            item.LayoutOrder = index
+            item.Parent = serversScroll
+
+            local itemCorner = Instance.new("UICorner")
+            itemCorner.CornerRadius = UDim.new(0, 6)
+            itemCorner.Parent = item
+
+            local infoText = Instance.new("TextLabel")
+            infoText.Size = UDim2.new(0.67, 0, 1, 0)
+            infoText.Position = UDim2.new(0, 9, 0, 0)
+            infoText.BackgroundTransparency = 1
+            infoText.TextColor3 = Color3.fromRGB(245, 245, 250)
+            infoText.TextXAlignment = Enum.TextXAlignment.Left
+            infoText.TextSize = 12
+            infoText.Font = Enum.Font.Gotham
+            infoText.Text = string.format(
+                "%s  %d/%d oyuncu",
+                isCurrentServer and "●" or "○",
+                tonumber(server.playing) or 0,
+                tonumber(server.maxPlayers) or 0
+            )
+            infoText.Parent = item
+
+            local joinButton = Instance.new("TextButton")
+            joinButton.Size = UDim2.new(0.27, 0, 0.72, 0)
+            joinButton.Position = UDim2.new(0.70, 0, 0.14, 0)
+            joinButton.BackgroundColor3 = isCurrentServer
+                and Color3.fromRGB(65, 95, 65)
+                or Color3.fromRGB(0, 120, 215)
+            joinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            joinButton.Text = isCurrentServer and "Buradasın" or "Katıl"
+            joinButton.TextSize = 11
+            joinButton.Font = Enum.Font.GothamBold
+            joinButton.Parent = item
+
+            local joinCorner = Instance.new("UICorner")
+            joinCorner.CornerRadius = UDim.new(0, 5)
+            joinCorner.Parent = joinButton
+
+            if not isCurrentServer then
+                local serverId = server.id
+                joinButton.MouseButton1Click:Connect(function()
+                    joinButton.Text = "Gidiliyor..."
+                    joinButton.Active = false
+                    local teleportSuccess = pcall(function()
+                        TeleportService:TeleportToPlaceInstance(
+                            placeId,
+                            serverId,
+                            player
+                        )
+                    end)
+                    if not teleportSuccess and joinButton.Parent then
+                        joinButton.Text = "Tekrar dene"
+                        joinButton.Active = true
+                    end
+                end)
+            else
+                joinButton.Active = false
+            end
+        end
+    end)
+end
+
+--==================================================
 -- SWITCH PAGES
 --==================================================
 
+local function setActivePage(activePage)
+    farmContainer.Visible = activePage == "farm"
+    settingsContainer.Visible = activePage == "settings"
+    serversContainer.Visible = activePage == "servers"
+
+    farmPageButton.BackgroundColor3 = activePage == "farm" and ON_COLOR or OFF_COLOR
+    farmPageButton.TextColor3 = activePage == "farm" and ON_TEXT or OFF_TEXT
+
+    settingsPageButton.BackgroundColor3 = activePage == "settings" and ON_COLOR or OFF_COLOR
+    settingsPageButton.TextColor3 = activePage == "settings" and ON_TEXT or OFF_TEXT
+
+    serversPageButton.BackgroundColor3 = activePage == "servers" and ON_COLOR or OFF_COLOR
+    serversPageButton.TextColor3 = activePage == "servers" and ON_TEXT or OFF_TEXT
+end
+
 farmPageButton.MouseButton1Click:Connect(function()
-
-    farmContainer.Visible = true
-    settingsContainer.Visible = false
-
-    farmPageButton.BackgroundColor3 =
-        ON_COLOR
-
-    farmPageButton.TextColor3 =
-        ON_TEXT
-
-    settingsPageButton.BackgroundColor3 =
-        OFF_COLOR
-
-    settingsPageButton.TextColor3 =
-        OFF_TEXT
+    setActivePage("farm")
 end)
 
 settingsPageButton.MouseButton1Click:Connect(function()
+    setActivePage("settings")
+end)
 
-    farmContainer.Visible = false
-    settingsContainer.Visible = true
-
-    settingsPageButton.BackgroundColor3 =
-        ON_COLOR
-
-    settingsPageButton.TextColor3 =
-        ON_TEXT
-
-    farmPageButton.BackgroundColor3 =
-        OFF_COLOR
-
-    farmPageButton.TextColor3 =
-        OFF_TEXT
+serversPageButton.MouseButton1Click:Connect(function()
+    setActivePage("servers")
+    loadServersList()
 end)
 
 --==================================================
