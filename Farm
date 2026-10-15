@@ -1,1860 +1,1790 @@
-local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
-local VIM = game:GetService("VirtualInputManager")
-local VirtualUser = game:GetService("VirtualUser")
-local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
+    local Players = game:GetService("Players")
+    local UIS = game:GetService("UserInputService")
+    local VIM = game:GetService("VirtualInputManager")
+    local VirtualUser = game:GetService("VirtualUser")
+    local RunService = game:GetService("RunService")
+    local TeleportService = game:GetService("TeleportService")
+    local HttpService = game:GetService("HttpService")
 
-local player = Players.LocalPlayer
+    local player = Players.LocalPlayer
 
---==================================================
--- PORTALS
---==================================================
+    --==================================================
+    -- PORTALS
+    --==================================================
 
-local undynePortal = CFrame.new(
-    -2425.594482421875,
-    533.9141235351562,
-    -588.2127685546875
-)
-local outertalePortal = CFrame.new(
-    -2383.7333984375,
-    533.9141235351562,
-    -578.871337890625
-)
-local hyperdustPortal = CFrame.new(
-    -2403.167236328125,
-    533.9141235351562,
-    -572.8255004882812
-)
-local bobPortal = CFrame.new(
-    -8357.2255859375,
-    1256.5865478515625,
-    -860.2608642578125
-)
-local offHeadPortal = CFrame.new(
-    -2443.704345703125,
-    533.9141235351562,
-    -443.5326843261719
-)
+    local undynePortal = CFrame.new(
+        -2425.594482421875,
+        533.9141235351562,
+        -588.2127685546875
+    )
+    local outertalePortal = CFrame.new(
+        -2383.7333984375,
+        533.9141235351562,
+        -578.871337890625
+    )
+    local hyperdustPortal = CFrame.new(
+        -2403.167236328125,
+        533.9141235351562,
+        -572.8255004882812
+    )
+    local bobPortal = CFrame.new(
+        -8357.2255859375,
+        1256.5865478515625,
+        -860.2608642578125
+    )
+    local offHeadPortal = CFrame.new(
+        -2443.704345703125,
+        533.9141235351562,
+        -443.5326843261719
+    )
 
-local susportalPortal = CFrame.new(
-    -427.47149658203125,
-    63.88474655151367,
-    -1284.06689453125,
-    -0.97381407,
-    2.72724563e-08,
-    0.227345869,
-    4.99589348e-08,
-    1,
-    9.40340641e-08,
-    -0.227345869,
-    1.02929654e-07,
-    -0.97381407
-)
+    local susportalPortal = CFrame.new(
+        -427.47149658203125,
+        63.88474655151367,
+        -1284.06689453125,
+        -0.97381407,
+        2.72724563e-08,
+        0.227345869,
+        4.99589348e-08,
+        1,
+        9.40340641e-08,
+        -0.227345869,
+        1.02929654e-07,
+        -0.97381407
+    )
 
-local safePosition = CFrame.new(
-    -1053.02294921875,
-    900.66650390625,
-    -1764.2423095703125
-)
+    local safePosition = CFrame.new(
+        -1053.02294921875,
+        900.66650390625,
+        -1764.2423095703125
+    )
 
-local xpCapsuleNpcPosition = CFrame.new(
-    -2473.444091796875,
-    763.4141235351562,
-    -587.9708251953125
-)
+    local watercoolerSafePosition = CFrame.new(
+        2845.40,
+        548.79,
+        -408.05
+    )
 
---==================================================
--- CLEAN UP OLD GUIS
---==================================================
+    local xpCapsuleNpcPosition = CFrame.new(
+        -2473.444091796875,
+        763.4141235351562,
+        -587.9708251953125
+    )
 
-pcall(function()
-    for _, guiName in ipairs({
-        "BossFarmUltimateGui",
-        "EliteBossHub",
-        "BossFarmGui"
-    }) do
+    local watercoolerBossPosition = CFrame.new(
+        -2007.04,
+        113.05,
+        169.73
+    )
 
-        local gui1 = player.PlayerGui:FindFirstChild(guiName)
-        if gui1 then
-            gui1:Destroy()
+    --==================================================
+    -- CLEAN UP OLD GUIS
+    --==================================================
+
+    pcall(function()
+        for _, guiName in ipairs({
+            "BossFarmUltimateGui",
+            "EliteBossHub",
+            "BossFarmGui"
+        }) do
+
+            local gui1 = player.PlayerGui:FindFirstChild(guiName)
+            if gui1 then
+                gui1:Destroy()
+            end
+
+            local gui2 = game.CoreGui:FindFirstChild(guiName)
+            if gui2 then
+                gui2:Destroy()
+            end
         end
+    end)
 
-        local gui2 = game.CoreGui:FindFirstChild(guiName)
-        if gui2 then
-            gui2:Destroy()
-        end
-    end
-end)
+    --==================================================
+    -- FARM CONFIG
+    --==================================================
 
---==================================================
--- FARM CONFIG
---==================================================
+    local farmConfigs = {
 
-local farmConfigs = {
+        Undyne = {
+            displayName = "UNDYNE ULTRA",
+            bossName = "UndyneULTRA",
+            portal = undynePortal,
+            special = true,
+            heal = false
+        },
 
-    Undyne = {
-        displayName = "UNDYNE ULTRA",
-        bossName = "UndyneULTRA",
-        portal = undynePortal,
-        special = true,
-        heal = false
-    },
+        Outertale = {
+            displayName = "OUTERTALE SANS",
+            bossName = "OuterSans",
+            portal = outertalePortal,
+            special = true,
+            heal = false
+        },
 
-    Outertale = {
-        displayName = "OUTERTALE SANS",
-        bossName = "OuterSans",
-        portal = outertalePortal,
-        special = true,
-        heal = false
-    },
+        Hyperdust = {
+            displayName = "HYPER DUST",
+            bossName = "HyperDT Sans",
+            portal = hyperdustPortal,
+            special = true,
+            heal = false
+        },
 
-    Hyperdust = {
-        displayName = "HYPER DUST",
-        bossName = "HyperDT Sans",
-        portal = hyperdustPortal,
-        special = true,
-        heal = false
-    },
+        Bob = {
+            displayName = "BOB",
+            bossName = "Bob",
+            portal = bobPortal,
+            special = false,
+            heal = true
+        },
 
-    Bob = {
-        displayName = "BOB",
-        bossName = "Bob",
-        portal = bobPortal,
-        special = false,
-        heal = true
-    },
+        OffHead = {
+            displayName = "OFF HEAD",
+            bossName = "OOF Head",
+            portal = offHeadPortal,
 
-    OffHead = {
-        displayName = "OFF HEAD",
-        bossName = "OOF Head",
-        portal = offHeadPortal,
+            -- Same behavior as Undyne
+            special = true,
+            offHeadDeathBySlot = true,
 
-        -- Same behavior as Undyne
-        special = true,
-        offHeadDeathBySlot = true,
+            heal = false
+        },
 
-        heal = false
-    },
+        Susportal = {
+            displayName = "SUSPORTAL",
+            bossName = "Imposter",
+            portal = susportalPortal,
+            special = true,
+            heal = true
+        },
 
-    Susportal = {
-        displayName = "SUSPORTAL",
-        bossName = "Imposter",
-        portal = susportalPortal,
-        special = true,
-        heal = true
+        Watercooler = {
+            displayName = "WATERCOOLER",
+            bossName = "Watercooler",
+            otherWorld = true,
+            bossPosition = watercoolerBossPosition,
+            heal = false
+        }
     }
-}
 
---==================================================
--- STATE
---==================================================
+    --==================================================
+    -- STATE
+    --==================================================
 
-local activeFarm = nil
-local autoLevel = false
-local farmNeedsTeleport = true
+    local activeFarm = nil
+    local autoLevel = false
+    local farmNeedsTeleport = true
 
-local activeTouchCount = 0
-local userTouchingScreen = false
+    local activeTouchCount = 0
+    local userTouchingScreen = false
 
-local totalKills = 0
+    local totalKills = 0
 
-local kills = {
-    Undyne = 0,
-    Outertale = 0,
-    Hyperdust = 0,
-    Bob = 0,
-    OffHead = 0,
-    Susportal = 0
-}
+    local kills = {
+        Undyne = 0,
+        Outertale = 0,
+        Hyperdust = 0,
+        Bob = 0,
+        OffHead = 0,
+        Susportal = 0,
+        Watercooler = 0
+    }
 
-local farmStartTime = nil
-local totalFarmTime = 0
-local statusLabel = nil
-local currentStatus = "Idle"
+    local farmStartTime = nil
+    local totalFarmTime = 0
+    local statusLabel = nil
+    local otherWorldStatusLabel = nil
+    local currentStatus = "Idle"
+    local heldMousePosition = nil
+    local heldKeyCode = nil
+    local releaseHeldMouse
+    local releaseHeldKey
+    local getWatercoolerAimPosition
 
-local function setStatus(message)
-    currentStatus = message
+    local function setStatus(message)
+        currentStatus = message
 
-    if statusLabel then
-        statusLabel.Text =
-            "STATUS: " .. currentStatus
+        if statusLabel then
+            statusLabel.Text =
+                "STATUS: " .. currentStatus
+        end
+
+        if otherWorldStatusLabel then
+            otherWorldStatusLabel.Text =
+                "STATUS: " .. currentStatus
+        end
     end
-end
 
-local function pauseFarmTimer()
-    if activeFarm and farmStartTime then
-        totalFarmTime += tick() - farmStartTime
-        farmStartTime = nil
+    local function pauseFarmTimer()
+        if activeFarm and farmStartTime then
+            totalFarmTime += tick() - farmStartTime
+            farmStartTime = nil
+        end
     end
-end
 
-local function resumeFarmTimer()
-    if activeFarm and not farmStartTime then
-        farmStartTime = tick()
+    local function resumeFarmTimer()
+        if activeFarm and not farmStartTime then
+            farmStartTime = tick()
+        end
     end
-end
 
---==================================================
--- ANTI AFK
---==================================================
-
-task.spawn(function()
+    --==================================================
+    -- ANTI AFK
+    --==================================================
 
     player.Idled:Connect(function()
+        local camera = workspace.CurrentCamera
 
-        pcall(function()
+        if not camera then
+            return
+        end
 
+        local succeeded, err = pcall(function()
             VirtualUser:Button2Down(
                 Vector2.new(0, 0),
-                workspace.CurrentCamera.CFrame
+                camera.CFrame
             )
 
             task.wait(1)
 
             VirtualUser:Button2Up(
                 Vector2.new(0, 0),
-                workspace.CurrentCamera.CFrame
+                camera.CFrame
             )
-
         end)
 
+        if not succeeded then
+            warn("Anti-AFK input failed: " .. tostring(err))
+        end
     end)
 
-    while true do
+    --==================================================
+    -- KEY INPUT FUNCTIONS
+    --==================================================
 
-        task.wait(60)
+    local function pressKey(key)
 
         pcall(function()
 
-            local cam = workspace.CurrentCamera
+            VIM:SendKeyEvent(
+                true,
+                key,
+                false,
+                game
+            )
 
-            if cam then
+            task.wait(0.05)
 
-                local oldCFrame = cam.CFrame
-
-                cam.CFrame =
-                    oldCFrame *
-                    CFrame.Angles(0, math.rad(0.01), 0)
-
-                task.wait(0.1)
-
-                cam.CFrame = oldCFrame
-            end
+            VIM:SendKeyEvent(
+                false,
+                key,
+                false,
+                game
+            )
 
         end)
-
     end
-end)
 
---==================================================
--- KEY INPUT FUNCTIONS
---==================================================
+    local function tapKeyOnce(key)
+        local pressed = false
+        local succeeded, err = pcall(function()
+            VIM:SendKeyEvent(
+                true,
+                key,
+                false,
+                game
+            )
+            pressed = true
 
-local function pressKey(key)
+            task.wait(0.05)
 
-    pcall(function()
+            VIM:SendKeyEvent(
+                false,
+                key,
+                false,
+                game
+            )
+            pressed = false
+        end)
 
-        VIM:SendKeyEvent(
-            true,
-            key,
-            false,
-            game
+        if not succeeded then
+            if pressed then
+                pcall(function()
+                    VIM:SendKeyEvent(
+                        false,
+                        key,
+                        false,
+                        game
+                    )
+                end)
+            end
+
+            warn("Could not tap key: " .. tostring(err))
+            return false
+        end
+
+        return true
+    end
+
+    local function holdKeyUntilReleased(key)
+        if heldKeyCode == key then
+            return true
+        end
+
+        if heldKeyCode and not releaseHeldKey() then
+            return false
+        end
+
+        local succeeded, err = pcall(function()
+            VIM:SendKeyEvent(
+                true,
+                key,
+                false,
+                game
+            )
+        end)
+
+        if not succeeded then
+            warn("Could not hold key: " .. tostring(err))
+            return false
+        end
+
+        heldKeyCode = key
+        return true
+    end
+
+    releaseHeldKey = function()
+        if not heldKeyCode then
+            return true
+        end
+
+        local key = heldKeyCode
+        local succeeded, err = pcall(function()
+            VIM:SendKeyEvent(
+                false,
+                key,
+                false,
+                game
+            )
+        end)
+
+        if not succeeded then
+            warn("Could not release held key: " .. tostring(err))
+            return false
+        end
+
+        heldKeyCode = nil
+        return true
+    end
+
+    local function holdCenterMouse()
+        if heldMousePosition then
+            return true
+        end
+
+        if userTouchingScreen then
+            return false
+        end
+
+        local camera = workspace.CurrentCamera
+
+        if not camera then
+            return false
+        end
+
+        local viewport = camera.ViewportSize
+        local position = Vector2.new(
+            viewport.X / 2,
+            viewport.Y / 2
         )
 
-        task.wait(0.05)
+        local succeeded, err = pcall(function()
+            VIM:SendMouseButtonEvent(
+                position.X,
+                position.Y,
+                0,
+                true,
+                game,
+                1
+            )
+        end)
 
-        VIM:SendKeyEvent(
-            false,
-            key,
-            false,
-            game
-        )
+        if not succeeded then
+            warn("Could not hold center mouse button: " .. tostring(err))
+            return false
+        end
 
-    end)
-end
+        heldMousePosition = position
+        return true
+    end
 
-local function equipSword()
-    pressKey(Enum.KeyCode.One)
-end
+    local function repeatHeldMouseDown()
+        if not heldMousePosition then
+            return false
+        end
 
---==================================================
--- SPECIAL ABILITY ON KEY 5
---==================================================
+        local position = heldMousePosition
+        local succeeded, err = pcall(function()
+            VIM:SendMouseButtonEvent(
+                position.X,
+                position.Y,
+                0,
+                true,
+                game,
+                1
+            )
+        end)
 
-local function useSpecialAbility()
+        if not succeeded then
+            warn("Could not maintain held mouse button: " .. tostring(err))
+            return false
+        end
 
-    pcall(function()
+        return true
+    end
 
-        VIM:SendKeyEvent(
-            true,
-            Enum.KeyCode.Five,
-            false,
-            game
-        )
+    releaseHeldMouse = function()
+        if not heldMousePosition then
+            return true
+        end
 
-        task.wait(0.05)
+        local position = heldMousePosition
+        local succeeded, err = pcall(function()
+            VIM:SendMouseButtonEvent(
+                position.X,
+                position.Y,
+                0,
+                false,
+                game,
+                1
+            )
+        end)
 
-        VIM:SendKeyEvent(
-            false,
-            Enum.KeyCode.Five,
-            false,
-            game
-        )
+        if not succeeded then
+            warn("Could not release held mouse button: " .. tostring(err))
+            return false
+        end
 
-        task.wait(0.2)
+        heldMousePosition = nil
+        return true
+    end
 
-        local viewportSize =
-            workspace.CurrentCamera.ViewportSize
+    local function releaseHeldInputs()
+        local mouseReleased = releaseHeldMouse()
+        local keyReleased = releaseHeldKey()
+        return mouseReleased and keyReleased
+    end
 
-        local clickX =
-            viewportSize.X / 2
+    local function equipSword()
+        pressKey(Enum.KeyCode.One)
+    end
 
-        local clickY =
-            viewportSize.Y / 2
+    --==================================================
+    -- SPECIAL ABILITY ON KEY 5
+    --==================================================
 
-        VIM:SendMouseButtonEvent(
-            clickX,
-            clickY,
-            0,
-            true,
-            game,
-            1
-        )
+    local function useSpecialAbility()
 
-        task.wait(0.05)
+        pcall(function()
 
-        VIM:SendMouseButtonEvent(
-            clickX,
-            clickY,
-            0,
-            false,
-            game,
-            1
-        )
+            VIM:SendKeyEvent(
+                true,
+                Enum.KeyCode.Five,
+                false,
+                game
+            )
 
-        task.wait(0.8)
+            task.wait(0.05)
 
-    end)
-end
+            VIM:SendKeyEvent(
+                false,
+                Enum.KeyCode.Five,
+                false,
+                game
+            )
 
---==================================================
--- FIND THE BOSS MODEL
---==================================================
+            task.wait(0.2)
 
-local function findBossModel(bossName)
+            local viewportSize =
+                workspace.CurrentCamera.ViewportSize
 
-    local activeBosses =
-        workspace:FindFirstChild("ActiveBosses")
+            local clickX =
+                viewportSize.X / 2
 
-    if not activeBosses then
+            local clickY =
+                viewportSize.Y / 2
+
+            VIM:SendMouseButtonEvent(
+                clickX,
+                clickY,
+                0,
+                true,
+                game,
+                1
+            )
+
+            task.wait(0.05)
+
+            VIM:SendMouseButtonEvent(
+                clickX,
+                clickY,
+                0,
+                false,
+                game,
+                1
+            )
+
+            task.wait(0.8)
+
+        end)
+    end
+
+    --==================================================
+    -- FIND THE BOSS MODEL
+    --==================================================
+
+    local function findBossModel(bossName)
+
+        local activeBosses =
+            workspace:FindFirstChild("ActiveBosses")
+
+        if not activeBosses then
+            return nil
+        end
+
+        for _, slot in ipairs(activeBosses:GetChildren()) do
+
+            local bossesFolder =
+                slot:FindFirstChild("Bosses")
+
+            if bossesFolder then
+
+                local directBoss =
+                    bossesFolder:FindFirstChild(bossName)
+
+                if directBoss and directBoss:IsA("Model") then
+                    return directBoss
+                end
+
+                for _, obj in ipairs(
+                    bossesFolder:GetDescendants()
+                ) do
+
+                    if obj:IsA("Model")
+                        and obj.Name == bossName then
+
+                        return obj
+                    end
+
+                end
+            end
+        end
+
         return nil
     end
 
-    for _, slot in ipairs(activeBosses:GetChildren()) do
+    local function findClosestBossModel(bossName, fromPosition)
+        local activeBosses = workspace:FindFirstChild("ActiveBosses")
 
-        local bossesFolder =
-            slot:FindFirstChild("Bosses")
-
-        if bossesFolder then
-
-            local directBoss =
-                bossesFolder:FindFirstChild(bossName)
-
-            if directBoss and directBoss:IsA("Model") then
-                return directBoss
-            end
-
-            for _, obj in ipairs(
-                bossesFolder:GetDescendants()
-            ) do
-
-                if obj:IsA("Model")
-                    and obj.Name == bossName then
-
-                    return obj
-                end
-
-            end
-        end
-    end
-
-    return nil
-end
-
---==================================================
--- FIND THE SPECIAL OFF HEAD SLOT
--- Structure: ActiveBosses > SlotX > Bosses > 1 > OOF head
--- Combat stays the same as Undyne; only death detection differs.
---==================================================
-
-local function findOffHeadSlot()
-    local activeBosses = workspace:FindFirstChild("ActiveBosses")
-
-    if not activeBosses then
-        return nil
-    end
-
-    for _, slot in ipairs(activeBosses:GetChildren()) do
-        local bossesFolder = slot:FindFirstChild("Bosses")
-
-        if bossesFolder then
-            for _, obj in ipairs(bossesFolder:GetDescendants()) do
-                if string.lower(tostring(obj.Name)) == "oof head"
-                    or string.lower(tostring(obj.Name)) == "oofhead"
-                    or string.lower(tostring(obj.Name)) == "oof_head" then
-
-                    return slot
-                end
-            end
-        end
-    end
-
-    return nil
-end
-
-local function offHeadSlotExists(slot)
-    if not slot then
-        return false
-    end
-
-    local activeBosses = workspace:FindFirstChild("ActiveBosses")
-
-    if not activeBosses then
-        return false
-    end
-
-    return slot.Parent == activeBosses
-end
-
---==================================================
--- MOBILE TOUCH INPUT
---==================================================
-
-UIS.TouchStarted:Connect(function()
-
-    activeTouchCount += 1
-    userTouchingScreen = true
-
-end)
-
-UIS.TouchEnded:Connect(function()
-
-    activeTouchCount =
-        math.max(
-            0,
-            activeTouchCount - 1
-        )
-
-    if activeTouchCount == 0 then
-        userTouchingScreen = false
-    end
-
-end)
-
---==================================================
--- CENTER CLICK
---==================================================
-
-local function centerClick()
-
-    if userTouchingScreen then
-        return
-    end
-
-    pcall(function()
-
-        local viewport =
-            workspace.CurrentCamera.ViewportSize
-
-        local x = viewport.X / 2
-        local y = viewport.Y / 2
-
-        VIM:SendMouseButtonEvent(
-            x,
-            y,
-            0,
-            true,
-            game,
-            1
-        )
-
-        VIM:SendMouseButtonEvent(
-            x,
-            y,
-            0,
-            false,
-            game,
-            1
-        )
-
-    end)
-end
-
---==================================================
--- HEALTH
---==================================================
-
-local function getHealthPercent()
-
-    local result = nil
-
-    pcall(function()
-
-        local hpDigits =
-            player.PlayerGui
-            .PlayerMain
-            .Dark
-            .StatHUD
-            .Health
-            .Digits
-
-        if hpDigits and hpDigits:IsA("TextLabel") then
-
-            local currentStr, maxStr =
-                hpDigits.Text:match(
-                    "(%d+)[%s/]+(%d+)"
-                )
-
-            if currentStr and maxStr then
-
-                local currentHp =
-                    tonumber(currentStr)
-
-                local maxHp =
-                    tonumber(maxStr)
-
-                if currentHp
-                    and maxHp
-                    and maxHp > 0 then
-
-                    result =
-                        (currentHp / maxHp) * 100
-                end
-            end
+        if not activeBosses then
+            return nil
         end
 
-    end)
+        local closestBoss = nil
+        local closestDistance = math.huge
 
-    return result
-end
+        for _, slot in ipairs(activeBosses:GetChildren()) do
+            local bossesFolder = slot:FindFirstChild("Bosses")
 
---==================================================
--- HEAL
---==================================================
+            if bossesFolder then
+                for _, object in ipairs(bossesFolder:GetDescendants()) do
+                    if object:IsA("Model") and object.Name == bossName then
+                        local distance =
+                            (object:GetPivot().Position - fromPosition).Magnitude
 
-local healing = false
-local healReady = true
-
-local function doHeal()
-
-    if healing then
-        return
-    end
-
-    healing = true
-
-    pcall(function()
-
-        pressKey(Enum.KeyCode.Three)
-
-        task.wait(0.05)
-
-        local viewport =
-            workspace.CurrentCamera.ViewportSize
-
-        local clickX =
-            viewport.X / 2
-
-        local clickY =
-            viewport.Y - 100
-
-        VIM:SendMouseButtonEvent(
-            clickX,
-            clickY,
-            0,
-            true,
-            game,
-            1
-        )
-
-        task.wait(0.05)
-
-        VIM:SendMouseButtonEvent(
-            clickX,
-            clickY,
-            0,
-            false,
-            game,
-            1
-        )
-
-        task.wait(0.3)
-
-        equipSword()
-
-        task.wait(3.5)
-
-    end)
-
-    healing = false
-end
-
---==================================================
--- AUTO HEAL
---==================================================
-
-task.spawn(function()
-
-    while true do
-
-        task.wait(0.2)
-
-        if activeFarm then
-
-            local config =
-                farmConfigs[activeFarm]
-
-            if config and config.heal then
-
-                local hp =
-                    getHealthPercent()
-
-                if hp then
-
-                    if hp <= 30 then
-
-                        if healReady then
-
-                            healReady = false
-
-                            doHeal()
+                        if distance < closestDistance then
+                            closestBoss = object
+                            closestDistance = distance
                         end
-
-                    elseif hp > 30 then
-
-                        healReady = true
                     end
                 end
             end
         end
+
+        return closestBoss
     end
-end)
 
---==================================================
--- LEVEL
---==================================================
+    local function getWatercoolerPartPosition(boss, partNames)
+        for _, partName in ipairs(partNames) do
+            local target = boss:FindFirstChild(partName, true)
 
-local function getLevel()
+            if target then
+                if target:IsA("BasePart") then
+                    return target.Position
+                elseif target:IsA("Attachment") then
+                    return target.WorldPosition
+                elseif target:IsA("Vector3Value") then
+                    return target.Value
+                elseif target:IsA("CFrameValue") then
+                    return target.Value.Position
+                elseif target:IsA("ObjectValue") and target.Value then
+                    local value = target.Value
 
-    local result = 0
-
-    pcall(function()
-
-        local leaderstats =
-            player:FindFirstChild("leaderstats")
-
-        if leaderstats then
-
-            local lv =
-                leaderstats:FindFirstChild("LV")
-
-            if lv then
-                result =
-                    tonumber(lv.Value) or 0
+                    if value:IsA("BasePart") then
+                        return value.Position
+                    elseif value:IsA("Attachment") then
+                        return value.WorldPosition
+                    elseif value:IsA("Vector3Value") then
+                        return value.Value
+                    elseif value:IsA("CFrameValue") then
+                        return value.Value.Position
+                    elseif value:IsA("Model") then
+                        return value:GetPivot().Position
+                    end
+                end
             end
+        end
+
+        return boss:GetPivot().Position
+    end
+
+    getWatercoolerAimPosition = function(boss)
+        return getWatercoolerPartPosition(
+            boss,
+            {"TargetTo", "Head", "Hitbox", "Torso"}
+        )
+    end
+
+    local function isBossModelActive(boss)
+        if not boss then
+            return false
+        end
+
+        local activeBosses = workspace:FindFirstChild("ActiveBosses")
+        local ancestor = boss
+
+        while ancestor and ancestor.Parent ~= activeBosses do
+            ancestor = ancestor.Parent
+        end
+
+        return ancestor ~= nil
+            and activeBosses ~= nil
+            and ancestor.Parent == activeBosses
+    end
+
+    --==================================================
+    -- FIND THE SPECIAL OFF HEAD SLOT
+    -- Structure: ActiveBosses > SlotX > Bosses > 1 > OOF head
+    -- Combat stays the same as Undyne; only death detection differs.
+    --==================================================
+
+    local function findOffHeadSlot()
+        local activeBosses = workspace:FindFirstChild("ActiveBosses")
+
+        if not activeBosses then
+            return nil
+        end
+
+        for _, slot in ipairs(activeBosses:GetChildren()) do
+            local bossesFolder = slot:FindFirstChild("Bosses")
+
+            if bossesFolder then
+                for _, obj in ipairs(bossesFolder:GetDescendants()) do
+                    if string.lower(tostring(obj.Name)) == "oof head"
+                        or string.lower(tostring(obj.Name)) == "oofhead"
+                        or string.lower(tostring(obj.Name)) == "oof_head" then
+
+                        return slot
+                    end
+                end
+            end
+        end
+
+        return nil
+    end
+
+    local function offHeadSlotExists(slot)
+        if not slot then
+            return false
+        end
+
+        local activeBosses = workspace:FindFirstChild("ActiveBosses")
+
+        if not activeBosses then
+            return false
+        end
+
+        return slot.Parent == activeBosses
+    end
+
+    --==================================================
+    -- MOBILE TOUCH INPUT
+    --==================================================
+
+    UIS.TouchStarted:Connect(function()
+
+        activeTouchCount += 1
+        userTouchingScreen = true
+
+    end)
+
+    UIS.TouchEnded:Connect(function()
+
+        activeTouchCount =
+            math.max(
+                0,
+                activeTouchCount - 1
+            )
+
+        if activeTouchCount == 0 then
+            userTouchingScreen = false
         end
 
     end)
 
-    return result
-end
+    --==================================================
+    -- CENTER CLICK
+    --==================================================
 
---==================================================
--- SELECT BOSS FOR AUTO LEVEL
---==================================================
+    local function centerClick()
 
-local function getBossForLevel(level)
+        if userTouchingScreen then
+            return
+        end
 
-    if level >= 5500 then
-        return "Outertale"
+        pcall(function()
 
-    elseif level >= 4900 then
-        return "Hyperdust"
+            local viewport =
+                workspace.CurrentCamera.ViewportSize
 
-    elseif level >= 3985 then
-        return "Bob"
+            local x = viewport.X / 2
+            local y = viewport.Y / 2
 
-    elseif level >= 3250 then
-        return "OffHead"
+            VIM:SendMouseButtonEvent(
+                x,
+                y,
+                0,
+                true,
+                game,
+                1
+            )
 
-    elseif level >= 1600 then
-        return "Undyne"
+            VIM:SendMouseButtonEvent(
+                x,
+                y,
+                0,
+                false,
+                game,
+                1
+            )
 
-    elseif level >= 305 then
-        return "Susportal"
+        end)
     end
 
-    return nil
-end
+    --==================================================
+    -- HEALTH
+    --==================================================
 
---==================================================
--- GUI
---==================================================
+    local function getHealthPercent()
 
-local screenGui =
-    Instance.new("ScreenGui")
+        local result = nil
 
-screenGui.Name =
-    "BossFarmUltimateGui"
+        pcall(function()
 
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player.PlayerGui
+            local hpDigits =
+                player.PlayerGui
+                .PlayerMain
+                .Dark
+                .StatHUD
+                .Health
+                .Digits
 
--- MAIN PANEL
-local frame =
-    Instance.new("Frame")
+            if hpDigits and hpDigits:IsA("TextLabel") then
 
-frame.Size =
-    UDim2.new(0, 590, 0, 390)
+                local currentStr, maxStr =
+                    hpDigits.Text:match(
+                        "(%d+)[%s/]+(%d+)"
+                    )
 
-frame.Position =
-    UDim2.new(0.5, -295, 0.08, 0)
+                if currentStr and maxStr then
 
-frame.BackgroundColor3 =
-    Color3.fromRGB(15, 15, 18)
+                    local currentHp =
+                        tonumber(currentStr)
 
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-frame.Parent = screenGui
+                    local maxHp =
+                        tonumber(maxStr)
 
-local frameCorner =
-    Instance.new("UICorner")
+                    if currentHp
+                        and maxHp
+                        and maxHp > 0 then
 
-frameCorner.CornerRadius =
-    UDim.new(0, 16)
+                        result =
+                            (currentHp / maxHp) * 100
+                    end
+                end
+            end
 
-frameCorner.Parent = frame
+        end)
 
-local frameStroke =
-    Instance.new("UIStroke")
-
-frameStroke.Color =
-    Color3.fromRGB(45, 45, 55)
-
-frameStroke.Thickness = 1.5
-frameStroke.Parent = frame
-
---==================================================
--- TITLE
---==================================================
-
-local title =
-    Instance.new("TextLabel")
-
-title.Size =
-    UDim2.new(1, 0, 0, 48)
-
-title.BackgroundColor3 =
-    Color3.fromRGB(22, 22, 28)
-
-title.TextColor3 =
-    Color3.fromRGB(255, 255, 255)
-
-title.Text =
-    "⚡ ELITE BOSS HUB ⚡"
-
-title.TextSize = 15
-title.Font = Enum.Font.GothamBold
-title.Parent = frame
-
-local titleCorner =
-    Instance.new("UICorner")
-
-titleCorner.CornerRadius =
-    UDim.new(0, 16)
-
-titleCorner.Parent = title
-
-local titleCover =
-    Instance.new("Frame")
-
-titleCover.Size =
-    UDim2.new(1, 0, 0, 12)
-
-titleCover.Position =
-    UDim2.new(0, 0, 1, -12)
-
-titleCover.BackgroundColor3 =
-    Color3.fromRGB(22, 22, 28)
-
-titleCover.BorderSizePixel = 0
-titleCover.Parent = title
-
---==================================================
--- PAGE BUTTONS
---==================================================
-
-local farmPageButton =
-    Instance.new("TextButton")
-
-farmPageButton.Size =
-    UDim2.new(0, 130, 0, 32)
-
-farmPageButton.Position =
-    UDim2.new(0, 15, 0, 58)
-
-farmPageButton.BackgroundColor3 =
-    Color3.fromRGB(65, 30, 95)
-
-farmPageButton.Text =
-    "AUTO FARM"
-
-farmPageButton.TextColor3 =
-    Color3.new(1, 1, 1)
-
-farmPageButton.TextSize = 11
-farmPageButton.Font =
-    Enum.Font.GothamBold
-
-farmPageButton.Parent = frame
-
-local farmPageCorner =
-    Instance.new("UICorner")
-
-farmPageCorner.CornerRadius =
-    UDim.new(0, 8)
-
-farmPageCorner.Parent =
-    farmPageButton
-
-local settingsPageButton =
-    Instance.new("TextButton")
-
-settingsPageButton.Size =
-    UDim2.new(0, 130, 0, 32)
-
-settingsPageButton.Position =
-    UDim2.new(0, 155, 0, 58)
-
-settingsPageButton.BackgroundColor3 =
-    Color3.fromRGB(27, 27, 34)
-
-settingsPageButton.Text =
-    "SETTINGS"
-
-settingsPageButton.TextColor3 =
-    Color3.fromRGB(180, 180, 190)
-
-settingsPageButton.TextSize = 11
-settingsPageButton.Font =
-    Enum.Font.GothamBold
-
-settingsPageButton.Parent = frame
-
-local settingsPageCorner =
-    Instance.new("UICorner")
-
-settingsPageCorner.CornerRadius =
-    UDim.new(0, 8)
-
-settingsPageCorner.Parent =
-    settingsPageButton
-
-local serversPageButton =
-    Instance.new("TextButton")
-
-serversPageButton.Size =
-    UDim2.new(0, 130, 0, 32)
-
-serversPageButton.Position =
-    UDim2.new(0, 295, 0, 58)
-
-serversPageButton.BackgroundColor3 =
-    Color3.fromRGB(27, 27, 34)
-
-serversPageButton.Text =
-    "SUNUCULAR"
-
-serversPageButton.TextColor3 =
-    Color3.fromRGB(180, 180, 190)
-
-serversPageButton.TextSize = 11
-serversPageButton.Font =
-    Enum.Font.GothamBold
-
-serversPageButton.Parent = frame
-
-local serversPageCorner =
-    Instance.new("UICorner")
-
-serversPageCorner.CornerRadius =
-    UDim.new(0, 8)
-
-serversPageCorner.Parent =
-    serversPageButton
-
---==================================================
--- FARM CONTAINER
---==================================================
-
-local farmContainer =
-    Instance.new("Frame")
-
-farmContainer.Size =
-    UDim2.new(1, -30, 1, -105)
-
-farmContainer.Position =
-    UDim2.new(0, 15, 0, 100)
-
-farmContainer.BackgroundTransparency = 1
-farmContainer.Parent = frame
-
---==================================================
--- BOSS BUTTON COLORS
---==================================================
-
-local OFF_COLOR =
-    Color3.fromRGB(25, 25, 32)
-
-local OFF_TEXT =
-    Color3.fromRGB(180, 180, 190)
-
-local ON_COLOR =
-    Color3.fromRGB(65, 30, 95)
-
-local ON_TEXT =
-    Color3.fromRGB(255, 255, 255)
-
-local bossButtons = {}
-
-local bossOrder = {
-    "Undyne",
-    "Outertale",
-    "Hyperdust",
-    "Bob",
-    "OffHead",
-    "Susportal"
-}
-
-local buttonPositions = {
-    Undyne = {0, 0},
-    Outertale = {180, 0},
-    Hyperdust = {360, 0},
-
-    Bob = {0, 52},
-    OffHead = {180, 52},
-    Susportal = {360, 52}
-}
-
---==================================================
--- BUTTON TEXT STATE
---==================================================
-
-local function setButtonState(
-    farmName,
-    isOn
-)
-
-    local button =
-        bossButtons[farmName]
-
-    if not button then
-        return
+        return result
     end
 
-    local config =
-        farmConfigs[farmName]
+    --==================================================
+    -- HEAL
+    --==================================================
 
-    if isOn then
+    local healing = false
+    local healReady = true
 
-        button.Text =
-            config.displayName ..
-            " [ON]"
+    local function doHeal()
+
+        if healing then
+            return
+        end
+
+        healing = true
+
+        pcall(function()
+
+            pressKey(Enum.KeyCode.Three)
+
+            task.wait(0.05)
+
+            local viewport =
+                workspace.CurrentCamera.ViewportSize
+
+            local clickX =
+                viewport.X / 2
+
+            local clickY =
+                viewport.Y - 100
+
+            VIM:SendMouseButtonEvent(
+                clickX,
+                clickY,
+                0,
+                true,
+                game,
+                1
+            )
+
+            task.wait(0.05)
+
+            VIM:SendMouseButtonEvent(
+                clickX,
+                clickY,
+                0,
+                false,
+                game,
+                1
+            )
+
+            task.wait(0.3)
+
+            equipSword()
+
+            task.wait(3.5)
+
+        end)
+
+        healing = false
+    end
+
+    --==================================================
+    -- AUTO HEAL
+    --==================================================
+
+    task.spawn(function()
+
+        while true do
+
+            task.wait(0.2)
+
+            if activeFarm then
+
+                local config =
+                    farmConfigs[activeFarm]
+
+                if config and config.heal then
+
+                    local hp =
+                        getHealthPercent()
+
+                    if hp then
+
+                        if hp <= 30 then
+
+                            if healReady then
+
+                                healReady = false
+
+                                doHeal()
+                            end
+
+                        elseif hp > 30 then
+
+                            healReady = true
+                        end
+                    end
+                end
+            end
+        end
+    end)
+
+    --==================================================
+    -- LEVEL
+    --==================================================
+
+    local function getLevel()
+
+        local result = 0
+
+        pcall(function()
+
+            local leaderstats =
+                player:FindFirstChild("leaderstats")
+
+            if leaderstats then
+
+                local lv =
+                    leaderstats:FindFirstChild("LV")
+
+                if lv then
+                    result =
+                        tonumber(lv.Value) or 0
+                end
+            end
+
+        end)
+
+        return result
+    end
+
+    --==================================================
+    -- SELECT BOSS FOR AUTO LEVEL
+    --==================================================
+
+    local function getBossForLevel(level)
+
+        if level >= 5500 then
+            return "Outertale"
+
+        elseif level >= 4900 then
+            return "Hyperdust"
+
+        elseif level >= 3985 then
+            return "Bob"
+
+        elseif level >= 3250 then
+            return "OffHead"
+
+        elseif level >= 1600 then
+            return "Undyne"
+
+        elseif level >= 305 then
+            return "Susportal"
+        end
+
+        return nil
+    end
+
+    --==================================================
+    -- GUI
+    --==================================================
+
+    local screenGui =
+        Instance.new("ScreenGui")
+
+    screenGui.Name =
+        "BossFarmUltimateGui"
+
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = player.PlayerGui
+
+    -- MAIN PANEL
+    local frame =
+        Instance.new("Frame")
+
+    frame.Size =
+        UDim2.new(0, 640, 0, 420)
+
+    frame.Position =
+        UDim2.new(0.5, -320, 0.08, 0)
+
+    frame.BackgroundColor3 =
+        Color3.fromRGB(17, 17, 24)
+
+    frame.BorderSizePixel = 0
+    frame.Active = true
+    frame.Draggable = true
+    frame.Parent = screenGui
+
+    local frameGradient =
+        Instance.new("UIGradient")
+
+    frameGradient.Color =
+        ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(24, 22, 34)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(14, 15, 21))
+        })
+    frameGradient.Rotation = 35
+    frameGradient.Parent = frame
+
+    local frameCorner =
+        Instance.new("UICorner")
+
+    frameCorner.CornerRadius =
+        UDim.new(0, 16)
+
+    frameCorner.Parent = frame
+
+    local frameStroke =
+        Instance.new("UIStroke")
+
+    frameStroke.Color =
+        Color3.fromRGB(107, 73, 150)
+
+    frameStroke.Thickness = 1.5
+    frameStroke.Transparency = 0.25
+    frameStroke.Parent = frame
+
+    local function styleContentPanel(panel)
+        panel.BackgroundColor3 = Color3.fromRGB(21, 21, 29)
+        panel.BackgroundTransparency = 0.12
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 13)
+        corner.Parent = panel
+
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = Color3.fromRGB(54, 48, 68)
+        stroke.Transparency = 0.35
+        stroke.Thickness = 1
+        stroke.Parent = panel
+    end
+
+    --==================================================
+    -- TITLE
+    --==================================================
+
+    local title =
+        Instance.new("TextLabel")
+
+    title.Size =
+        UDim2.new(1, 0, 0, 52)
+
+    title.BackgroundColor3 =
+        Color3.fromRGB(22, 22, 28)
+
+    title.TextColor3 =
+        Color3.fromRGB(255, 255, 255)
+
+    title.Text =
+        "⚡  ELITE BOSS HUB"
+
+    title.TextSize = 17
+    title.Font = Enum.Font.GothamBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.TextYAlignment = Enum.TextYAlignment.Top
+    title.Position = UDim2.new(0, 19, 0, 6)
+    title.BackgroundTransparency = 1
+    title.Parent = frame
+
+    local subtitle =
+        Instance.new("TextLabel")
+
+    subtitle.Size = UDim2.new(1, -38, 0, 16)
+    subtitle.Position = UDim2.new(0, 20, 0, 30)
+    subtitle.BackgroundTransparency = 1
+    subtitle.Text = "BOSS FARM  •  LIVE STATUS  •  STATS"
+    subtitle.TextColor3 = Color3.fromRGB(167, 153, 190)
+    subtitle.TextSize = 9
+    subtitle.Font = Enum.Font.GothamMedium
+    subtitle.TextXAlignment = Enum.TextXAlignment.Left
+    subtitle.Parent = frame
+
+    local titleAccent =
+        Instance.new("Frame")
+
+    titleAccent.Size =
+        UDim2.new(1, -30, 0, 2)
+
+    titleAccent.Position =
+        UDim2.new(0, 15, 0, 51)
+
+    titleAccent.BackgroundColor3 =
+        Color3.fromRGB(145, 83, 220)
+
+    titleAccent.BorderSizePixel = 0
+    titleAccent.Parent = frame
+
+    local titleAccentGradient = Instance.new("UIGradient")
+    titleAccentGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(92, 55, 150)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(186, 115, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(92, 55, 150))
+    })
+    titleAccentGradient.Parent = titleAccent
+
+    --==================================================
+    -- PAGE BUTTONS
+    --==================================================
+
+    local farmPageButton =
+        Instance.new("TextButton")
+
+    farmPageButton.Size =
+        UDim2.new(0, 145, 0, 34)
+
+    farmPageButton.Position =
+        UDim2.new(0, 15, 0, 58)
+
+    farmPageButton.BackgroundColor3 =
+        Color3.fromRGB(65, 30, 95)
+
+    farmPageButton.Text =
+        "AUTO FARM"
+
+    farmPageButton.TextColor3 =
+        Color3.new(1, 1, 1)
+
+    farmPageButton.TextSize = 11
+    farmPageButton.Font =
+        Enum.Font.GothamBold
+
+    farmPageButton.Parent = frame
+
+    local farmPageCorner =
+        Instance.new("UICorner")
+
+    farmPageCorner.CornerRadius =
+        UDim.new(0, 8)
+
+    farmPageCorner.Parent =
+        farmPageButton
+
+    local settingsPageButton =
+        Instance.new("TextButton")
+
+    settingsPageButton.Size =
+        UDim2.new(0, 145, 0, 34)
+
+    settingsPageButton.Position =
+        UDim2.new(0, 170, 0, 58)
+
+    settingsPageButton.BackgroundColor3 =
+        Color3.fromRGB(27, 27, 34)
+
+    settingsPageButton.Text =
+        "SETTINGS"
+
+    settingsPageButton.TextColor3 =
+        Color3.fromRGB(180, 180, 190)
+
+    settingsPageButton.TextSize = 11
+    settingsPageButton.Font =
+        Enum.Font.GothamBold
+
+    settingsPageButton.Parent = frame
+
+    local settingsPageCorner =
+        Instance.new("UICorner")
+
+    settingsPageCorner.CornerRadius =
+        UDim.new(0, 8)
+
+    settingsPageCorner.Parent =
+        settingsPageButton
+
+    local serversPageButton =
+        Instance.new("TextButton")
+
+    serversPageButton.Size =
+        UDim2.new(0, 145, 0, 34)
+
+    serversPageButton.Position =
+        UDim2.new(0, 325, 0, 58)
+
+    serversPageButton.BackgroundColor3 =
+        Color3.fromRGB(27, 27, 34)
+
+    serversPageButton.Text =
+        "SUNUCULAR"
+
+    serversPageButton.TextColor3 =
+        Color3.fromRGB(180, 180, 190)
+
+    serversPageButton.TextSize = 11
+    serversPageButton.Font =
+        Enum.Font.GothamBold
+
+    serversPageButton.Parent = frame
+
+    local serversPageCorner =
+        Instance.new("UICorner")
+
+    serversPageCorner.CornerRadius =
+        UDim.new(0, 8)
+
+    serversPageCorner.Parent =
+        serversPageButton
+
+    local otherWorldPageButton =
+        Instance.new("TextButton")
+
+    otherWorldPageButton.Size =
+        UDim2.new(0, 145, 0, 34)
+
+    otherWorldPageButton.Position =
+        UDim2.new(0, 480, 0, 58)
+
+    otherWorldPageButton.BackgroundColor3 =
+        Color3.fromRGB(27, 27, 34)
+
+    otherWorldPageButton.Text =
+        "OTHER WORLD"
+
+    otherWorldPageButton.TextColor3 =
+        Color3.fromRGB(180, 180, 190)
+
+    otherWorldPageButton.TextSize = 10
+    otherWorldPageButton.Font =
+        Enum.Font.GothamBold
+
+    otherWorldPageButton.Parent = frame
+
+    local otherWorldPageCorner =
+        Instance.new("UICorner")
+
+    otherWorldPageCorner.CornerRadius =
+        UDim.new(0, 8)
+
+    otherWorldPageCorner.Parent =
+        otherWorldPageButton
+
+    local pageButtons = {
+        farm = farmPageButton,
+        settings = settingsPageButton,
+        servers = serversPageButton,
+        otherWorld = otherWorldPageButton
+    }
+
+    local pageButtonStrokes = {}
+
+    for pageName, pageButton in pairs(pageButtons) do
+        pageButton.AutoButtonColor = false
+
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = Color3.fromRGB(82, 68, 103)
+        stroke.Transparency = 0.45
+        stroke.Thickness = 1
+        stroke.Parent = pageButton
+
+        pageButtonStrokes[pageName] = stroke
+    end
+
+    local contentDivider = Instance.new("Frame")
+    contentDivider.Size = UDim2.new(1, -30, 0, 1)
+    contentDivider.Position = UDim2.new(0, 15, 0, 98)
+    contentDivider.BackgroundColor3 = Color3.fromRGB(73, 59, 91)
+    contentDivider.BackgroundTransparency = 0.3
+    contentDivider.BorderSizePixel = 0
+    contentDivider.Parent = frame
+
+    --==================================================
+    -- FARM CONTAINER
+    --==================================================
+
+    local farmContainer =
+        Instance.new("Frame")
+
+    farmContainer.Size =
+        UDim2.new(1, -30, 1, -105)
+
+    farmContainer.Position =
+        UDim2.new(0, 15, 0, 100)
+
+    styleContentPanel(farmContainer)
+    farmContainer.Parent = frame
+
+    local otherWorldContainer =
+        Instance.new("Frame")
+
+    otherWorldContainer.Size =
+        UDim2.new(1, -30, 1, -105)
+
+    otherWorldContainer.Position =
+        UDim2.new(0, 15, 0, 100)
+
+    styleContentPanel(otherWorldContainer)
+    otherWorldContainer.Visible = false
+    otherWorldContainer.Parent = frame
+
+    local otherWorldHeader =
+        Instance.new("TextLabel")
+
+    otherWorldHeader.Size =
+        UDim2.new(1, 0, 0, 28)
+
+    otherWorldHeader.BackgroundTransparency = 1
+    otherWorldHeader.Text =
+        "OTHER WORLD BOSSES"
+    otherWorldHeader.TextColor3 =
+        Color3.fromRGB(235, 235, 245)
+    otherWorldHeader.TextSize = 13
+    otherWorldHeader.Font =
+        Enum.Font.GothamBold
+    otherWorldHeader.TextXAlignment =
+        Enum.TextXAlignment.Left
+    otherWorldHeader.Parent =
+        otherWorldContainer
+
+    local otherWorldInfo =
+        Instance.new("TextLabel")
+
+    otherWorldInfo.Size =
+        UDim2.new(1, 0, 0, 64)
+
+    otherWorldInfo.Position =
+        UDim2.new(0, 0, 0, 36)
+
+    otherWorldInfo.BackgroundColor3 =
+        Color3.fromRGB(21, 21, 27)
+    otherWorldInfo.Text =
+        "Enter the Other World first. Watercooler: -2007.04, 113.05, 169.73\nThe farm follows the active Watercooler slot."
+    otherWorldInfo.TextColor3 =
+        Color3.fromRGB(190, 190, 205)
+    otherWorldInfo.TextSize = 11
+    otherWorldInfo.Font =
+        Enum.Font.Gotham
+    otherWorldInfo.TextWrapped = true
+    otherWorldInfo.Parent =
+        otherWorldContainer
+
+    local otherWorldInfoCorner =
+        Instance.new("UICorner")
+
+    otherWorldInfoCorner.CornerRadius =
+        UDim.new(0, 9)
+    otherWorldInfoCorner.Parent =
+        otherWorldInfo
+
+    local otherWorldButton
+
+    --==================================================
+    -- BOSS BUTTON COLORS
+    --==================================================
+
+    local OFF_COLOR =
+        Color3.fromRGB(25, 25, 32)
+
+    local OFF_TEXT =
+        Color3.fromRGB(180, 180, 190)
+
+    local ON_COLOR =
+        Color3.fromRGB(65, 30, 95)
+
+    local ON_TEXT =
+        Color3.fromRGB(255, 255, 255)
+
+    local bossButtons = {}
+
+    otherWorldButton =
+        Instance.new("TextButton")
+
+    otherWorldButton.Size =
+        UDim2.new(0, 220, 0, 48)
+
+    otherWorldButton.Position =
+        UDim2.new(0, 0, 0, 104)
+
+    otherWorldButton.BackgroundColor3 =
+        Color3.fromRGB(25, 25, 32)
+
+    otherWorldButton.TextColor3 =
+        Color3.fromRGB(180, 180, 190)
+
+    otherWorldButton.Text =
+        "WATERCOOLER [OFF]"
+
+    otherWorldButton.TextSize = 12
+    otherWorldButton.Font =
+        Enum.Font.GothamBold
+    otherWorldButton.BorderSizePixel = 0
+    otherWorldButton.Active = true
+    otherWorldButton.Selectable = true
+    otherWorldButton.AutoButtonColor = false
+    otherWorldButton.ZIndex = 3
+    otherWorldButton.Parent =
+        otherWorldContainer
+
+    local otherWorldButtonCorner =
+        Instance.new("UICorner")
+
+    otherWorldButtonCorner.CornerRadius =
+        UDim.new(0, 10)
+    otherWorldButtonCorner.Parent =
+        otherWorldButton
+
+    local otherWorldButtonStroke =
+        Instance.new("UIStroke")
+
+    otherWorldButtonStroke.Color =
+        Color3.fromRGB(40, 40, 50)
+    otherWorldButtonStroke.Thickness = 1
+    otherWorldButtonStroke.Parent =
+        otherWorldButton
+
+    otherWorldStatusLabel =
+        Instance.new("TextLabel")
+
+    otherWorldStatusLabel.Size =
+        UDim2.new(1, -24, 0, 48)
+
+    otherWorldStatusLabel.Position =
+        UDim2.new(0, 12, 0, 168)
+
+    otherWorldStatusLabel.BackgroundColor3 =
+        Color3.fromRGB(21, 21, 29)
+
+    otherWorldStatusLabel.TextColor3 =
+        Color3.fromRGB(220, 220, 230)
+
+    otherWorldStatusLabel.Text =
+        "STATUS: " .. currentStatus
+
+    otherWorldStatusLabel.TextSize = 11
+    otherWorldStatusLabel.Font =
+        Enum.Font.GothamSemibold
+
+    otherWorldStatusLabel.TextWrapped = true
+    otherWorldStatusLabel.Parent =
+        otherWorldContainer
+
+    local otherWorldStatusCorner =
+        Instance.new("UICorner")
+
+    otherWorldStatusCorner.CornerRadius =
+        UDim.new(0, 9)
+    otherWorldStatusCorner.Parent =
+        otherWorldStatusLabel
+
+    local otherWorldStatusStroke =
+        Instance.new("UIStroke")
+
+    otherWorldStatusStroke.Color =
+        Color3.fromRGB(54, 48, 68)
+    otherWorldStatusStroke.Transparency = 0.35
+    otherWorldStatusStroke.Thickness = 1
+    otherWorldStatusStroke.Parent =
+        otherWorldStatusLabel
+
+    local bossOrder = {
+        "Undyne",
+        "Outertale",
+        "Hyperdust",
+        "Bob",
+        "OffHead",
+        "Susportal"
+    }
+
+    local buttonPositions = {
+        Undyne = {0, 0},
+        Outertale = {180, 0},
+        Hyperdust = {360, 0},
+
+        Bob = {0, 52},
+        OffHead = {180, 52},
+        Susportal = {360, 52}
+    }
+
+    --==================================================
+    -- BUTTON TEXT STATE
+    --==================================================
+
+    local function setButtonState(
+        farmName,
+        isOn
+    )
+
+        local button =
+            bossButtons[farmName]
+
+        if not button and farmName == "Watercooler" then
+            button = otherWorldButton
+        end
+
+        if not button then
+            return
+        end
+
+        local config =
+            farmConfigs[farmName]
+
+        if isOn then
+
+            button.Text =
+                config.displayName ..
+                " [ON]"
+
+            button.BackgroundColor3 =
+                ON_COLOR
+
+            button.TextColor3 =
+                ON_TEXT
+
+        else
+
+            button.Text =
+                config.displayName ..
+                " [OFF]"
+
+            button.BackgroundColor3 =
+                OFF_COLOR
+
+            button.TextColor3 =
+                OFF_TEXT
+        end
+    end
+
+    --==================================================
+    -- RESET ALL BUTTONS
+    --==================================================
+
+    local function resetBossButtons()
+
+        for _, farmName in ipairs(bossOrder) do
+            setButtonState(
+                farmName,
+                false
+            )
+        end
+
+        setButtonState("Watercooler", false)
+    end
+
+    local setAutoLevelState
+
+    --==================================================
+    -- ACTIVATE BOSS FARM
+    --==================================================
+
+    local function activateFarm(farmName)
+
+        autoLevel = false
+        setAutoLevelState(false)
+
+        if activeFarm == farmName then
+
+            releaseHeldInputs()
+            pauseFarmTimer()
+            activeFarm = nil
+            farmStartTime = nil
+            farmNeedsTeleport = true
+            setStatus("Farm stopped")
+
+            resetBossButtons()
+
+            return
+        end
+
+        if activeFarm and farmStartTime then
+            pauseFarmTimer()
+        end
+
+        releaseHeldInputs()
+        activeFarm = farmName
+        farmNeedsTeleport = true
+        resumeFarmTimer()
+        setStatus(
+            farmConfigs[farmName].displayName
+            .. " selected; waiting to teleport"
+        )
+
+        resetBossButtons()
+
+        setButtonState(
+            farmName,
+            true
+        )
+    end
+
+    otherWorldButton.Activated:Connect(function()
+        local succeeded, err = pcall(function()
+            activateFarm("Watercooler")
+        end)
+
+        if not succeeded then
+            warn("Watercooler button failed: " .. tostring(err))
+            setStatus("Watercooler button error: " .. tostring(err))
+        end
+    end)
+
+    --==================================================
+    -- BOSS BUTTONS
+    --==================================================
+
+    for _, farmName in ipairs(bossOrder) do
+
+        local config =
+            farmConfigs[farmName]
+
+        local pos =
+            buttonPositions[farmName]
+
+        local button =
+            Instance.new("TextButton")
+
+        button.Size =
+            UDim2.new(0, 165, 0, 42)
+
+        button.Position =
+            UDim2.new(
+                0,
+                pos[1],
+                0,
+                pos[2]
+            )
 
         button.BackgroundColor3 =
-            ON_COLOR
+            OFF_COLOR
 
         button.TextColor3 =
-            ON_TEXT
-
-    else
+            OFF_TEXT
 
         button.Text =
             config.displayName ..
             " [OFF]"
 
-        button.BackgroundColor3 =
-            OFF_COLOR
+        button.TextSize = 10
+        button.Font = Enum.Font.GothamBold
 
-        button.TextColor3 =
-            OFF_TEXT
-    end
-end
+        button.BorderSizePixel = 0
+        button.Parent = farmContainer
 
---==================================================
--- RESET ALL BUTTONS
---==================================================
+        local corner =
+            Instance.new("UICorner")
 
-local function resetBossButtons()
+        corner.CornerRadius =
+            UDim.new(0, 10)
 
-    for _, farmName in ipairs(bossOrder) do
-        setButtonState(
-            farmName,
-            false
-        )
-    end
-end
+        corner.Parent = button
 
-local setAutoLevelState
+        local stroke =
+            Instance.new("UIStroke")
 
---==================================================
--- ACTIVATE BOSS FARM
---==================================================
+        stroke.Color =
+            Color3.fromRGB(40, 40, 50)
 
-local function activateFarm(farmName)
+        stroke.Thickness = 1
+        stroke.Parent = button
 
-    autoLevel = false
-    setAutoLevelState(false)
+        bossButtons[farmName] =
+            button
 
-    if activeFarm == farmName then
-
-        pauseFarmTimer()
-        activeFarm = nil
-        farmStartTime = nil
-        farmNeedsTeleport = true
-        setStatus("Farm stopped")
-
-        resetBossButtons()
-
-        return
+        button.MouseButton1Click:Connect(function()
+            activateFarm(farmName)
+        end)
     end
 
-    if activeFarm and farmStartTime then
-        pauseFarmTimer()
-    end
+    --==================================================
+    -- AUTO LEVEL BUTTON
+    --==================================================
 
-    activeFarm = farmName
-    farmNeedsTeleport = true
-    resumeFarmTimer()
-    setStatus(
-        farmConfigs[farmName].displayName
-        .. " selected; waiting to teleport"
-    )
-
-    resetBossButtons()
-
-    setButtonState(
-        farmName,
-        true
-    )
-end
-
---==================================================
--- BOSS BUTTONS
---==================================================
-
-for _, farmName in ipairs(bossOrder) do
-
-    local config =
-        farmConfigs[farmName]
-
-    local pos =
-        buttonPositions[farmName]
-
-    local button =
+    local autoLevelButton =
         Instance.new("TextButton")
 
-    button.Size =
+    autoLevelButton.Size =
         UDim2.new(0, 165, 0, 42)
 
-    button.Position =
-        UDim2.new(
-            0,
-            pos[1],
-            0,
-            pos[2]
-        )
+    autoLevelButton.Position =
+        UDim2.new(0, 0, 0, 104)
 
-    button.BackgroundColor3 =
+    autoLevelButton.BackgroundColor3 =
         OFF_COLOR
 
-    button.TextColor3 =
+    autoLevelButton.TextColor3 =
         OFF_TEXT
 
-    button.Text =
-        config.displayName ..
-        " [OFF]"
+    autoLevelButton.Text =
+        "AUTO LEVEL [OFF]"
 
-    button.TextSize = 10
-    button.Font = Enum.Font.GothamBold
+    autoLevelButton.TextSize = 10
+    autoLevelButton.Font =
+        Enum.Font.GothamBold
 
-    button.BorderSizePixel = 0
-    button.Parent = farmContainer
+    autoLevelButton.BorderSizePixel = 0
+    autoLevelButton.Parent = farmContainer
 
-    local corner =
+    local autoLevelCorner =
         Instance.new("UICorner")
 
-    corner.CornerRadius =
+    autoLevelCorner.CornerRadius =
         UDim.new(0, 10)
 
-    corner.Parent = button
+    autoLevelCorner.Parent =
+        autoLevelButton
 
-    local stroke =
-        Instance.new("UIStroke")
+    setAutoLevelState = function(on)
 
-    stroke.Color =
-        Color3.fromRGB(40, 40, 50)
+        if on then
 
-    stroke.Thickness = 1
-    stroke.Parent = button
+            autoLevelButton.Text =
+                "AUTO LEVEL [ON]"
 
-    bossButtons[farmName] =
-        button
+            autoLevelButton.BackgroundColor3 =
+                ON_COLOR
 
-    button.MouseButton1Click:Connect(function()
-        activateFarm(farmName)
-    end)
-end
-
---==================================================
--- AUTO LEVEL BUTTON
---==================================================
-
-local autoLevelButton =
-    Instance.new("TextButton")
-
-autoLevelButton.Size =
-    UDim2.new(0, 165, 0, 42)
-
-autoLevelButton.Position =
-    UDim2.new(0, 0, 0, 104)
-
-autoLevelButton.BackgroundColor3 =
-    OFF_COLOR
-
-autoLevelButton.TextColor3 =
-    OFF_TEXT
-
-autoLevelButton.Text =
-    "AUTO LEVEL [OFF]"
-
-autoLevelButton.TextSize = 10
-autoLevelButton.Font =
-    Enum.Font.GothamBold
-
-autoLevelButton.BorderSizePixel = 0
-autoLevelButton.Parent = farmContainer
-
-local autoLevelCorner =
-    Instance.new("UICorner")
-
-autoLevelCorner.CornerRadius =
-    UDim.new(0, 10)
-
-autoLevelCorner.Parent =
-    autoLevelButton
-
-setAutoLevelState = function(on)
-
-    if on then
-
-        autoLevelButton.Text =
-            "AUTO LEVEL [ON]"
-
-        autoLevelButton.BackgroundColor3 =
-            ON_COLOR
-
-        autoLevelButton.TextColor3 =
-            ON_TEXT
-
-    else
-
-        autoLevelButton.Text =
-            "AUTO LEVEL [OFF]"
-
-        autoLevelButton.BackgroundColor3 =
-            OFF_COLOR
-
-        autoLevelButton.TextColor3 =
-            OFF_TEXT
-    end
-end
-
-autoLevelButton.MouseButton1Click:Connect(function()
-
-    if autoLevel then
-
-        autoLevel = false
-
-        pauseFarmTimer()
-        activeFarm = nil
-        farmStartTime = nil
-        farmNeedsTeleport = true
-        setStatus("Auto Level stopped")
-
-        resetBossButtons()
-        setAutoLevelState(false)
-
-    else
-
-        autoLevel = true
-
-        setAutoLevelState(true)
-
-        local target =
-            getBossForLevel(
-                getLevel()
-            )
-
-        if target then
-
-            if activeFarm and farmStartTime then
-                pauseFarmTimer()
-            end
-
-            activeFarm = target
-            farmNeedsTeleport = true
-            resumeFarmTimer()
-            setStatus(
-                farmConfigs[target].displayName
-                .. " selected; waiting to teleport"
-            )
-
-            resetBossButtons()
-
-            setButtonState(
-                target,
-                true
-            )
-        else
-            setStatus("Below level 305; no target boss")
-        end
-    end
-end)
-
-local npcTeleportButton =
-    Instance.new("TextButton")
-
-npcTeleportButton.Size =
-    UDim2.new(0, 165, 0, 42)
-
-npcTeleportButton.Position =
-    UDim2.new(0, 360, 0, 156)
-
-npcTeleportButton.BackgroundColor3 =
-    OFF_COLOR
-
-npcTeleportButton.TextColor3 =
-    OFF_TEXT
-
-npcTeleportButton.Text =
-    "TELEPORT TO XP NPC"
-
-npcTeleportButton.TextSize = 10
-npcTeleportButton.Font =
-    Enum.Font.GothamBold
-
-npcTeleportButton.BorderSizePixel = 0
-npcTeleportButton.Parent = farmContainer
-
-local npcTeleportCorner =
-    Instance.new("UICorner")
-
-npcTeleportCorner.CornerRadius =
-    UDim.new(0, 10)
-
-npcTeleportCorner.Parent =
-    npcTeleportButton
-
-npcTeleportButton.MouseButton1Click:Connect(function()
-    autoLevel = false
-
-    if activeFarm then
-        pauseFarmTimer()
-    end
-
-    activeFarm = nil
-    farmStartTime = nil
-    farmNeedsTeleport = true
-    setStatus("Teleporting to the XP NPC")
-
-    resetBossButtons()
-    setAutoLevelState(false)
-
-    local succeeded, err =
-        pcall(function()
-            local character = player.Character
-
-            if not character then
-                character = player.CharacterAdded:Wait()
-            end
-
-            local root =
-                character:WaitForChild(
-                    "HumanoidRootPart",
-                    10
-                )
-
-            if not root then
-                error("HumanoidRootPart was not found")
-            end
-
-            root.AssemblyLinearVelocity =
-                Vector3.new(0, 0, 0)
-
-            root.CFrame =
-                xpCapsuleNpcPosition
-        end)
-
-    if not succeeded then
-        warn("NPC teleport failed: " .. tostring(err))
-        setStatus("NPC teleport failed")
-        npcTeleportButton.Text =
-            "TELEPORT ERROR"
-
-        task.wait(2)
-
-        npcTeleportButton.Text =
-            "TELEPORT TO XP NPC"
-    else
-        setStatus("Arrived at the XP NPC")
-    end
-end)
-
---==================================================
--- FARM STATUS LABEL
---==================================================
-
-local farmInfo =
-    Instance.new("TextLabel")
-
-farmInfo.Size =
-    UDim2.new(0, 345, 0, 42)
-
-farmInfo.Position =
-    UDim2.new(0, 180, 0, 104)
-
-farmInfo.BackgroundColor3 =
-    Color3.fromRGB(21, 21, 27)
-
-farmInfo.TextColor3 =
-    Color3.fromRGB(175, 175, 185)
-
-farmInfo.Text =
-    "Farm inactive"
-
-farmInfo.TextSize = 10
-farmInfo.Font =
-    Enum.Font.GothamSemibold
-
-farmInfo.TextWrapped = true
-farmInfo.Parent = farmContainer
-
-local farmInfoCorner =
-    Instance.new("UICorner")
-
-farmInfoCorner.CornerRadius =
-    UDim.new(0, 10)
-
-farmInfoCorner.Parent =
-    farmInfo
-
-statusLabel =
-    Instance.new("TextLabel")
-
-statusLabel.Size =
-    UDim2.new(0, 345, 0, 42)
-
-statusLabel.Position =
-    UDim2.new(0, 0, 0, 156)
-
-statusLabel.BackgroundColor3 =
-    Color3.fromRGB(21, 21, 27)
-
-statusLabel.TextColor3 =
-    Color3.fromRGB(220, 220, 230)
-
-statusLabel.Text =
-    "STATUS: " .. currentStatus
-
-statusLabel.TextSize = 10
-statusLabel.Font =
-    Enum.Font.GothamSemibold
-
-statusLabel.TextWrapped = true
-statusLabel.Parent = farmContainer
-
-local statusCorner =
-    Instance.new("UICorner")
-
-statusCorner.CornerRadius =
-    UDim.new(0, 10)
-
-statusCorner.Parent =
-    statusLabel
-
---==================================================
--- SETTINGS PAGE
---==================================================
-
-local settingsContainer =
-    Instance.new("Frame")
-
-settingsContainer.Size =
-    UDim2.new(1, -30, 1, -105)
-
-settingsContainer.Position =
-    UDim2.new(0, 15, 0, 100)
-
-settingsContainer.BackgroundTransparency = 1
-settingsContainer.Visible = false
-settingsContainer.Parent = frame
-
-local settingsStats =
-    Instance.new("TextLabel")
-
-settingsStats.Size =
-    UDim2.new(1, 0, 0, 220)
-
-settingsStats.Position =
-    UDim2.new(0, 0, 0, 0)
-
-settingsStats.BackgroundColor3 =
-    Color3.fromRGB(21, 21, 27)
-
-settingsStats.TextColor3 =
-    Color3.fromRGB(220, 220, 230)
-
-settingsStats.TextSize = 12
-settingsStats.Font =
-    Enum.Font.GothamSemibold
-
-settingsStats.TextXAlignment =
-    Enum.TextXAlignment.Left
-
-settingsStats.TextYAlignment =
-    Enum.TextYAlignment.Top
-
-settingsStats.TextWrapped = true
-settingsStats.Parent =
-    settingsContainer
-
-local settingsCorner =
-    Instance.new("UICorner")
-
-settingsCorner.CornerRadius =
-    UDim.new(0, 12)
-
-settingsCorner.Parent =
-    settingsStats
-
---==================================================
--- SERVERS PAGE
---==================================================
-
-local serversContainer =
-    Instance.new("Frame")
-
-serversContainer.Size =
-    UDim2.new(1, -30, 1, -105)
-
-serversContainer.Position =
-    UDim2.new(0, 15, 0, 100)
-
-serversContainer.BackgroundTransparency = 1
-serversContainer.Visible = false
-serversContainer.Parent = frame
-
-local serversHeader =
-    Instance.new("TextLabel")
-
-serversHeader.Size =
-    UDim2.new(1, 0, 0, 28)
-
-serversHeader.Position =
-    UDim2.new(0, 0, 0, 0)
-
-serversHeader.BackgroundTransparency = 1
-serversHeader.TextColor3 =
-    Color3.fromRGB(235, 235, 245)
-
-serversHeader.Text =
-    "Sunucular  •  Oyuncu sayısı / kapasite"
-
-serversHeader.TextSize = 12
-serversHeader.Font =
-    Enum.Font.GothamBold
-serversHeader.TextXAlignment =
-    Enum.TextXAlignment.Left
-serversHeader.Parent = serversContainer
-
-local serversScroll =
-    Instance.new("ScrollingFrame")
-
-serversScroll.Size =
-    UDim2.new(1, 0, 1, -34)
-
-serversScroll.Position =
-    UDim2.new(0, 0, 0, 34)
-
-serversScroll.BackgroundColor3 =
-    Color3.fromRGB(21, 21, 27)
-
-serversScroll.BorderSizePixel = 0
-serversScroll.ScrollBarThickness = 5
-serversScroll.CanvasSize =
-    UDim2.new(0, 0, 0, 0)
-serversScroll.AutomaticCanvasSize =
-    Enum.AutomaticSize.Y
-serversScroll.ScrollingDirection =
-    Enum.ScrollingDirection.Y
-serversScroll.Parent = serversContainer
-
-local serversScrollCorner =
-    Instance.new("UICorner")
-serversScrollCorner.CornerRadius =
-    UDim.new(0, 10)
-serversScrollCorner.Parent = serversScroll
-
-local serversListLayout =
-    Instance.new("UIListLayout")
-serversListLayout.Padding =
-    UDim.new(0, 5)
-serversListLayout.SortOrder =
-    Enum.SortOrder.LayoutOrder
-serversListLayout.Parent = serversScroll
-
-local serversListPadding =
-    Instance.new("UIPadding")
-serversListPadding.PaddingTop =
-    UDim.new(0, 7)
-serversListPadding.PaddingBottom =
-    UDim.new(0, 7)
-serversListPadding.PaddingLeft =
-    UDim.new(0, 7)
-serversListPadding.PaddingRight =
-    UDim.new(0, 7)
-serversListPadding.Parent = serversScroll
-
-local serversLoadToken = 0
-
-local function loadServersList()
-    serversLoadToken = serversLoadToken + 1
-    local thisLoadToken = serversLoadToken
-
-    for _, child in ipairs(serversScroll:GetChildren()) do
-        if child:IsA("Frame") or child:IsA("TextLabel") then
-            child:Destroy()
-        end
-    end
-
-    local loadingLabel = Instance.new("TextLabel")
-    loadingLabel.Size = UDim2.new(1, -4, 0, 30)
-    loadingLabel.BackgroundTransparency = 1
-    loadingLabel.TextColor3 = Color3.fromRGB(190, 190, 200)
-    loadingLabel.TextSize = 12
-    loadingLabel.Font = Enum.Font.Gotham
-    loadingLabel.Text = "Sunucular yükleniyor..."
-    loadingLabel.Parent = serversScroll
-
-    task.spawn(function()
-        local placeId = game.PlaceId
-        local url = "https://games.roblox.com/v1/games/" .. tostring(placeId) .. "/servers/Public?sortOrder=Asc&limit=100"
-        local success, response = pcall(function()
-            local body = game:HttpGet(url)
-            return HttpService:JSONDecode(body)
-        end)
-
-        if thisLoadToken ~= serversLoadToken then
-            return
-        end
-
-        loadingLabel:Destroy()
-
-        if not success or not response or type(response.data) ~= "table" then
-            local errorLabel = Instance.new("TextLabel")
-            errorLabel.Size = UDim2.new(1, -4, 0, 42)
-            errorLabel.BackgroundTransparency = 1
-            errorLabel.TextColor3 = Color3.fromRGB(235, 150, 150)
-            errorLabel.TextSize = 12
-            errorLabel.Font = Enum.Font.Gotham
-            errorLabel.TextWrapped = true
-            errorLabel.Text = "Sunucu listesi alınamadı. HTTP isteği desteklenmiyor olabilir."
-            errorLabel.Parent = serversScroll
-            return
-        end
-
-        if #response.data == 0 then
-            local emptyLabel = Instance.new("TextLabel")
-            emptyLabel.Size = UDim2.new(1, -4, 0, 30)
-            emptyLabel.BackgroundTransparency = 1
-            emptyLabel.TextColor3 = Color3.fromRGB(190, 190, 200)
-            emptyLabel.TextSize = 12
-            emptyLabel.Font = Enum.Font.Gotham
-            emptyLabel.Text = "Listelenecek sunucu bulunamadı."
-            emptyLabel.Parent = serversScroll
-            return
-        end
-
-        for index, server in ipairs(response.data) do
-            local isCurrentServer = server.id == game.JobId
-            local item = Instance.new("Frame")
-            item.Name = "ServerRow_" .. tostring(index)
-            item.Size = UDim2.new(1, -4, 0, 38)
-            item.BackgroundColor3 = isCurrentServer
-                and Color3.fromRGB(40, 80, 40)
-                or Color3.fromRGB(35, 35, 42)
-            item.BorderSizePixel = 0
-            item.LayoutOrder = index
-            item.Parent = serversScroll
-
-            local itemCorner = Instance.new("UICorner")
-            itemCorner.CornerRadius = UDim.new(0, 6)
-            itemCorner.Parent = item
-
-            local infoText = Instance.new("TextLabel")
-            infoText.Size = UDim2.new(0.67, 0, 1, 0)
-            infoText.Position = UDim2.new(0, 9, 0, 0)
-            infoText.BackgroundTransparency = 1
-            infoText.TextColor3 = Color3.fromRGB(245, 245, 250)
-            infoText.TextXAlignment = Enum.TextXAlignment.Left
-            infoText.TextSize = 12
-            infoText.Font = Enum.Font.Gotham
-            infoText.Text = string.format(
-                "%s  %d/%d oyuncu",
-                isCurrentServer and "●" or "○",
-                tonumber(server.playing) or 0,
-                tonumber(server.maxPlayers) or 0
-            )
-            infoText.Parent = item
-
-            local joinButton = Instance.new("TextButton")
-            joinButton.Size = UDim2.new(0.27, 0, 0.72, 0)
-            joinButton.Position = UDim2.new(0.70, 0, 0.14, 0)
-            joinButton.BackgroundColor3 = isCurrentServer
-                and Color3.fromRGB(65, 95, 65)
-                or Color3.fromRGB(0, 120, 215)
-            joinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-            joinButton.Text = isCurrentServer and "Buradasın" or "Katıl"
-            joinButton.TextSize = 11
-            joinButton.Font = Enum.Font.GothamBold
-            joinButton.Parent = item
-
-            local joinCorner = Instance.new("UICorner")
-            joinCorner.CornerRadius = UDim.new(0, 5)
-            joinCorner.Parent = joinButton
-
-            if not isCurrentServer then
-                local serverId = server.id
-                joinButton.MouseButton1Click:Connect(function()
-                    joinButton.Text = "Gidiliyor..."
-                    joinButton.Active = false
-                    local teleportSuccess = pcall(function()
-                        TeleportService:TeleportToPlaceInstance(
-                            placeId,
-                            serverId,
-                            player
-                        )
-                    end)
-                    if not teleportSuccess and joinButton.Parent then
-                        joinButton.Text = "Tekrar dene"
-                        joinButton.Active = true
-                    end
-                end)
-            else
-                joinButton.Active = false
-            end
-        end
-    end)
-end
-
---==================================================
--- SWITCH PAGES
---==================================================
-
-local function setActivePage(activePage)
-    farmContainer.Visible = activePage == "farm"
-    settingsContainer.Visible = activePage == "settings"
-    serversContainer.Visible = activePage == "servers"
-
-    farmPageButton.BackgroundColor3 = activePage == "farm" and ON_COLOR or OFF_COLOR
-    farmPageButton.TextColor3 = activePage == "farm" and ON_TEXT or OFF_TEXT
-
-    settingsPageButton.BackgroundColor3 = activePage == "settings" and ON_COLOR or OFF_COLOR
-    settingsPageButton.TextColor3 = activePage == "settings" and ON_TEXT or OFF_TEXT
-
-    serversPageButton.BackgroundColor3 = activePage == "servers" and ON_COLOR or OFF_COLOR
-    serversPageButton.TextColor3 = activePage == "servers" and ON_TEXT or OFF_TEXT
-end
-
-farmPageButton.MouseButton1Click:Connect(function()
-    setActivePage("farm")
-end)
-
-settingsPageButton.MouseButton1Click:Connect(function()
-    setActivePage("settings")
-end)
-
-serversPageButton.MouseButton1Click:Connect(function()
-    setActivePage("servers")
-    loadServersList()
-end)
-
---==================================================
--- FORMAT TIME
---==================================================
-
-local function formatTime(seconds)
-
-    seconds =
-        math.floor(seconds)
-
-    local hours =
-        math.floor(seconds / 3600)
-
-    local minutes =
-        math.floor(
-            (seconds % 3600) / 60
-        )
-
-    local secs =
-        seconds % 60
-
-    return string.format(
-        "%02d:%02d:%02d",
-        hours,
-        minutes,
-        secs
-    )
-end
-
---==================================================
--- GUI LIVE STATS
---==================================================
-
-task.spawn(function()
-
-    while true do
-
-        task.wait(0.25)
-
-        local currentFarmTime =
-            totalFarmTime
-
-        if activeFarm and farmStartTime then
-
-            currentFarmTime +=
-                tick() - farmStartTime
-        end
-
-        local level =
-            getLevel()
-
-        local gold = 0
-
-        pcall(function()
-
-            local leaderstats =
-                player:FindFirstChild(
-                    "leaderstats"
-                )
-
-            if leaderstats then
-
-                local goldValue =
-                    leaderstats:FindFirstChild(
-                        "Gold"
-                    )
-
-                if goldValue then
-
-                    gold =
-                        tonumber(
-                            goldValue.Value
-                        ) or 0
-                end
-            end
-
-        end)
-
-        if activeFarm then
-
-            farmInfo.Text =
-                "● ACTIVE: " ..
-                farmConfigs[
-                    activeFarm
-                ].displayName
+            autoLevelButton.TextColor3 =
+                ON_TEXT
 
         else
 
-            farmInfo.Text =
-                "Farm inactive"
+            autoLevelButton.Text =
+                "AUTO LEVEL [OFF]"
+
+            autoLevelButton.BackgroundColor3 =
+                OFF_COLOR
+
+            autoLevelButton.TextColor3 =
+                OFF_TEXT
         end
-
-        settingsStats.Text =
-            "   LIVE STATS\n\n" ..
-
-            "   LEVEL: " ..
-            tostring(level) ..
-
-            "\n   GOLD: " ..
-            tostring(gold) ..
-
-            "\n\n   TOTAL BOSS KILLS: " ..
-            tostring(totalKills) ..
-
-            "\n\n   UNDYNE: " ..
-            tostring(kills.Undyne) ..
-
-            "        OUTERTALE: " ..
-            tostring(kills.Outertale) ..
-
-            "\n   HYPERDUST: " ..
-            tostring(kills.Hyperdust) ..
-
-            "        BOB: " ..
-            tostring(kills.Bob) ..
-
-            "\n   OFF HEAD: " ..
-            tostring(kills.OffHead) ..
-
-            "        SUSPORTAL: " ..
-            tostring(kills.Susportal) ..
-
-            "\n\n   TOTAL AUTO FARM TIME: " ..
-            formatTime(
-                currentFarmTime
-            )
     end
-end)
 
---==================================================
--- AUTO LEVEL LOOP
---==================================================
-
-task.spawn(function()
-
-    while true do
-
-        task.wait(0.5)
+    autoLevelButton.MouseButton1Click:Connect(function()
 
         if autoLevel then
 
-            local level =
-                getLevel()
+            autoLevel = false
+
+            releaseHeldInputs()
+            pauseFarmTimer()
+            activeFarm = nil
+            farmStartTime = nil
+            farmNeedsTeleport = true
+            setStatus("Auto Level stopped")
+
+            resetBossButtons()
+            setAutoLevelState(false)
+
+        else
+
+            autoLevel = true
+
+            setAutoLevelState(true)
 
             local target =
-                getBossForLevel(level)
+                getBossForLevel(
+                    getLevel()
+                )
 
-            if target
-                and target ~= activeFarm then
+            if target then
 
                 if activeFarm and farmStartTime then
                     pauseFarmTimer()
                 end
 
+                releaseHeldInputs()
                 activeFarm = target
                 farmNeedsTeleport = true
                 resumeFarmTimer()
@@ -1869,159 +1799,860 @@ task.spawn(function()
                     target,
                     true
                 )
+            else
+                setStatus("Below level 305; no target boss")
             end
-        end
-    end
-end)
-
---==================================================
--- REGISTER KILL
---==================================================
-
-local function registerKill(farmName)
-
-    totalKills += 1
-
-    if kills[farmName] ~= nil then
-        kills[farmName] += 1
-    end
-end
-
---==================================================
--- SAFE
---==================================================
-
-local function goSafe()
-
-    pcall(function()
-
-        local char =
-            player.Character
-
-        local root =
-            char and
-            char:FindFirstChild(
-                "HumanoidRootPart"
-            )
-
-        if root then
-
-            root.AssemblyLinearVelocity =
-                Vector3.new(0, 0, 0)
-
-            root.CFrame =
-                safePosition
         end
     end)
-end
 
-local function teleportToPortal(portal, farmName)
-    if activeFarm ~= farmName then
-        return false
-    end
+    local npcTeleportButton =
+        Instance.new("TextButton")
 
-    local succeeded, err =
-        pcall(function()
-            local character = player.Character
+    npcTeleportButton.Size =
+        UDim2.new(0, 165, 0, 42)
 
-            if not character then
-                character = player.CharacterAdded:Wait()
+    npcTeleportButton.Position =
+        UDim2.new(0, 360, 0, 156)
+
+    npcTeleportButton.BackgroundColor3 =
+        OFF_COLOR
+
+    npcTeleportButton.TextColor3 =
+        OFF_TEXT
+
+    npcTeleportButton.Text =
+        "TELEPORT TO XP NPC"
+
+    npcTeleportButton.TextSize = 10
+    npcTeleportButton.Font =
+        Enum.Font.GothamBold
+
+    npcTeleportButton.BorderSizePixel = 0
+    npcTeleportButton.Parent = farmContainer
+
+    local npcTeleportCorner =
+        Instance.new("UICorner")
+
+    npcTeleportCorner.CornerRadius =
+        UDim.new(0, 10)
+
+    npcTeleportCorner.Parent =
+        npcTeleportButton
+
+    npcTeleportButton.MouseButton1Click:Connect(function()
+        autoLevel = false
+
+        releaseHeldInputs()
+
+        if activeFarm then
+            pauseFarmTimer()
+        end
+
+        activeFarm = nil
+        farmStartTime = nil
+        farmNeedsTeleport = true
+        setStatus("Teleporting to the XP NPC")
+
+        resetBossButtons()
+        setAutoLevelState(false)
+
+        local succeeded, err =
+            pcall(function()
+                local character = player.Character
+
+                if not character then
+                    character = player.CharacterAdded:Wait()
+                end
+
+                local root =
+                    character:WaitForChild(
+                        "HumanoidRootPart",
+                        10
+                    )
+
+                if not root then
+                    error("HumanoidRootPart was not found")
+                end
+
+                root.AssemblyLinearVelocity =
+                    Vector3.new(0, 0, 0)
+
+                root.CFrame =
+                    xpCapsuleNpcPosition
+            end)
+
+        if not succeeded then
+            warn("NPC teleport failed: " .. tostring(err))
+            setStatus("NPC teleport failed")
+            npcTeleportButton.Text =
+                "TELEPORT ERROR"
+
+            task.wait(2)
+
+            npcTeleportButton.Text =
+                "TELEPORT TO XP NPC"
+        else
+            setStatus("Arrived at the XP NPC")
+        end
+    end)
+
+    --==================================================
+    -- FARM STATUS LABEL
+    --==================================================
+
+    local farmInfo =
+        Instance.new("TextLabel")
+
+    farmInfo.Size =
+        UDim2.new(0, 345, 0, 42)
+
+    farmInfo.Position =
+        UDim2.new(0, 180, 0, 104)
+
+    farmInfo.BackgroundColor3 =
+        Color3.fromRGB(21, 21, 27)
+
+    farmInfo.TextColor3 =
+        Color3.fromRGB(175, 175, 185)
+
+    farmInfo.Text =
+        "Farm inactive"
+
+    farmInfo.TextSize = 10
+    farmInfo.Font =
+        Enum.Font.GothamSemibold
+
+    farmInfo.TextWrapped = true
+    farmInfo.Parent = farmContainer
+
+    local farmInfoCorner =
+        Instance.new("UICorner")
+
+    farmInfoCorner.CornerRadius =
+        UDim.new(0, 10)
+
+    farmInfoCorner.Parent =
+        farmInfo
+
+    statusLabel =
+        Instance.new("TextLabel")
+
+    statusLabel.Size =
+        UDim2.new(0, 345, 0, 42)
+
+    statusLabel.Position =
+        UDim2.new(0, 0, 0, 156)
+
+    statusLabel.BackgroundColor3 =
+        Color3.fromRGB(21, 21, 27)
+
+    statusLabel.TextColor3 =
+        Color3.fromRGB(220, 220, 230)
+
+    statusLabel.Text =
+        "STATUS: " .. currentStatus
+
+    statusLabel.TextSize = 10
+    statusLabel.Font =
+        Enum.Font.GothamSemibold
+
+    statusLabel.TextWrapped = true
+    statusLabel.Parent = farmContainer
+
+    local statusCorner =
+        Instance.new("UICorner")
+
+    statusCorner.CornerRadius =
+        UDim.new(0, 10)
+
+    statusCorner.Parent =
+        statusLabel
+
+    --==================================================
+    -- SETTINGS PAGE
+    --==================================================
+
+    local settingsContainer =
+        Instance.new("Frame")
+
+    settingsContainer.Size =
+        UDim2.new(1, -30, 1, -105)
+
+    settingsContainer.Position =
+        UDim2.new(0, 15, 0, 100)
+
+    styleContentPanel(settingsContainer)
+    settingsContainer.Visible = false
+    settingsContainer.Parent = frame
+
+    local settingsStats =
+        Instance.new("TextLabel")
+
+    settingsStats.Size =
+        UDim2.new(1, 0, 0, 220)
+
+    settingsStats.Position =
+        UDim2.new(0, 0, 0, 0)
+
+    settingsStats.BackgroundColor3 =
+        Color3.fromRGB(21, 21, 27)
+
+    settingsStats.TextColor3 =
+        Color3.fromRGB(220, 220, 230)
+
+    settingsStats.TextSize = 12
+    settingsStats.Font =
+        Enum.Font.GothamSemibold
+
+    settingsStats.TextXAlignment =
+        Enum.TextXAlignment.Left
+
+    settingsStats.TextYAlignment =
+        Enum.TextYAlignment.Top
+
+    settingsStats.TextWrapped = true
+    settingsStats.Parent =
+        settingsContainer
+
+    local settingsCorner =
+        Instance.new("UICorner")
+
+    settingsCorner.CornerRadius =
+        UDim.new(0, 12)
+
+    settingsCorner.Parent =
+        settingsStats
+
+    --==================================================
+    -- SERVERS PAGE
+    --==================================================
+
+    local serversContainer =
+        Instance.new("Frame")
+
+    serversContainer.Size =
+        UDim2.new(1, -30, 1, -105)
+
+    serversContainer.Position =
+        UDim2.new(0, 15, 0, 100)
+
+    styleContentPanel(serversContainer)
+    serversContainer.Visible = false
+    serversContainer.Parent = frame
+
+    local serversHeader =
+        Instance.new("TextLabel")
+
+    serversHeader.Size =
+        UDim2.new(1, 0, 0, 28)
+
+    serversHeader.Position =
+        UDim2.new(0, 0, 0, 0)
+
+    serversHeader.BackgroundTransparency = 1
+    serversHeader.TextColor3 =
+        Color3.fromRGB(235, 235, 245)
+
+    serversHeader.Text =
+        "Sunucular  •  Oyuncu sayısı / kapasite"
+
+    serversHeader.TextSize = 12
+    serversHeader.Font =
+        Enum.Font.GothamBold
+    serversHeader.TextXAlignment =
+        Enum.TextXAlignment.Left
+    serversHeader.Parent = serversContainer
+
+    local serversScroll =
+        Instance.new("ScrollingFrame")
+
+    serversScroll.Size =
+        UDim2.new(1, 0, 1, -34)
+
+    serversScroll.Position =
+        UDim2.new(0, 0, 0, 34)
+
+    serversScroll.BackgroundColor3 =
+        Color3.fromRGB(21, 21, 27)
+
+    serversScroll.BorderSizePixel = 0
+    serversScroll.ScrollBarThickness = 5
+    serversScroll.CanvasSize =
+        UDim2.new(0, 0, 0, 0)
+    serversScroll.AutomaticCanvasSize =
+        Enum.AutomaticSize.Y
+    serversScroll.ScrollingDirection =
+        Enum.ScrollingDirection.Y
+    serversScroll.Parent = serversContainer
+
+    local serversScrollCorner =
+        Instance.new("UICorner")
+    serversScrollCorner.CornerRadius =
+        UDim.new(0, 10)
+    serversScrollCorner.Parent = serversScroll
+
+    local serversListLayout =
+        Instance.new("UIListLayout")
+    serversListLayout.Padding =
+        UDim.new(0, 5)
+    serversListLayout.SortOrder =
+        Enum.SortOrder.LayoutOrder
+    serversListLayout.Parent = serversScroll
+
+    local serversListPadding =
+        Instance.new("UIPadding")
+    serversListPadding.PaddingTop =
+        UDim.new(0, 7)
+    serversListPadding.PaddingBottom =
+        UDim.new(0, 7)
+    serversListPadding.PaddingLeft =
+        UDim.new(0, 7)
+    serversListPadding.PaddingRight =
+        UDim.new(0, 7)
+    serversListPadding.Parent = serversScroll
+
+    local serversLoadToken = 0
+
+    local function loadServersList()
+        serversLoadToken = serversLoadToken + 1
+        local thisLoadToken = serversLoadToken
+
+        for _, child in ipairs(serversScroll:GetChildren()) do
+            if child:IsA("Frame") or child:IsA("TextLabel") then
+                child:Destroy()
+            end
+        end
+
+        local loadingLabel = Instance.new("TextLabel")
+        loadingLabel.Size = UDim2.new(1, -4, 0, 30)
+        loadingLabel.BackgroundTransparency = 1
+        loadingLabel.TextColor3 = Color3.fromRGB(190, 190, 200)
+        loadingLabel.TextSize = 12
+        loadingLabel.Font = Enum.Font.Gotham
+        loadingLabel.Text = "Sunucular yükleniyor..."
+        loadingLabel.Parent = serversScroll
+
+        task.spawn(function()
+            local placeId = game.PlaceId
+            local url = "https://games.roblox.com/v1/games/" .. tostring(placeId) .. "/servers/Public?sortOrder=Asc&limit=100"
+            local success, response = pcall(function()
+                local body = game:HttpGet(url)
+                return HttpService:JSONDecode(body)
+            end)
+
+            if thisLoadToken ~= serversLoadToken then
+                return
             end
 
-            local root =
-                character:WaitForChild(
-                    "HumanoidRootPart",
-                    10
+            loadingLabel:Destroy()
+
+            if not success or not response or type(response.data) ~= "table" then
+                local errorLabel = Instance.new("TextLabel")
+                errorLabel.Size = UDim2.new(1, -4, 0, 42)
+                errorLabel.BackgroundTransparency = 1
+                errorLabel.TextColor3 = Color3.fromRGB(235, 150, 150)
+                errorLabel.TextSize = 12
+                errorLabel.Font = Enum.Font.Gotham
+                errorLabel.TextWrapped = true
+                errorLabel.Text = "Sunucu listesi alınamadı. HTTP isteği desteklenmiyor olabilir."
+                errorLabel.Parent = serversScroll
+                return
+            end
+
+            if #response.data == 0 then
+                local emptyLabel = Instance.new("TextLabel")
+                emptyLabel.Size = UDim2.new(1, -4, 0, 30)
+                emptyLabel.BackgroundTransparency = 1
+                emptyLabel.TextColor3 = Color3.fromRGB(190, 190, 200)
+                emptyLabel.TextSize = 12
+                emptyLabel.Font = Enum.Font.Gotham
+                emptyLabel.Text = "Listelenecek sunucu bulunamadı."
+                emptyLabel.Parent = serversScroll
+                return
+            end
+
+            for index, server in ipairs(response.data) do
+                local isCurrentServer = server.id == game.JobId
+                local item = Instance.new("Frame")
+                item.Name = "ServerRow_" .. tostring(index)
+                item.Size = UDim2.new(1, -4, 0, 38)
+                item.BackgroundColor3 = isCurrentServer
+                    and Color3.fromRGB(40, 80, 40)
+                    or Color3.fromRGB(35, 35, 42)
+                item.BorderSizePixel = 0
+                item.LayoutOrder = index
+                item.Parent = serversScroll
+
+                local itemCorner = Instance.new("UICorner")
+                itemCorner.CornerRadius = UDim.new(0, 6)
+                itemCorner.Parent = item
+
+                local infoText = Instance.new("TextLabel")
+                infoText.Size = UDim2.new(0.67, 0, 1, 0)
+                infoText.Position = UDim2.new(0, 9, 0, 0)
+                infoText.BackgroundTransparency = 1
+                infoText.TextColor3 = Color3.fromRGB(245, 245, 250)
+                infoText.TextXAlignment = Enum.TextXAlignment.Left
+                infoText.TextSize = 12
+                infoText.Font = Enum.Font.Gotham
+                infoText.Text = string.format(
+                    "%s  %d/%d oyuncu",
+                    isCurrentServer and "●" or "○",
+                    tonumber(server.playing) or 0,
+                    tonumber(server.maxPlayers) or 0
                 )
+                infoText.Parent = item
 
-            if not root or activeFarm ~= farmName then
-                return false
+                local joinButton = Instance.new("TextButton")
+                joinButton.Size = UDim2.new(0.27, 0, 0.72, 0)
+                joinButton.Position = UDim2.new(0.70, 0, 0.14, 0)
+                joinButton.BackgroundColor3 = isCurrentServer
+                    and Color3.fromRGB(65, 95, 65)
+                    or Color3.fromRGB(0, 120, 215)
+                joinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+                joinButton.Text = isCurrentServer and "Buradasın" or "Katıl"
+                joinButton.TextSize = 11
+                joinButton.Font = Enum.Font.GothamBold
+                joinButton.Parent = item
+
+                local joinCorner = Instance.new("UICorner")
+                joinCorner.CornerRadius = UDim.new(0, 5)
+                joinCorner.Parent = joinButton
+
+                if not isCurrentServer then
+                    local serverId = server.id
+                    joinButton.MouseButton1Click:Connect(function()
+                        joinButton.Text = "Gidiliyor..."
+                        joinButton.Active = false
+                        local teleportSuccess = pcall(function()
+                            TeleportService:TeleportToPlaceInstance(
+                                placeId,
+                                serverId,
+                                player
+                            )
+                        end)
+                        if not teleportSuccess and joinButton.Parent then
+                            joinButton.Text = "Tekrar dene"
+                            joinButton.Active = true
+                        end
+                    end)
+                else
+                    joinButton.Active = false
+                end
             end
-
-            root.AssemblyLinearVelocity =
-                Vector3.new(0, 0, 0)
-
-            root.CFrame = portal
-            return true
         end)
-
-    if not succeeded then
-        warn("Portal teleport failed: " .. tostring(err))
-        return false
     end
 
-    return err == true
-end
+    --==================================================
+    -- SWITCH PAGES
+    --==================================================
 
---==================================================
--- BOSS FARM
---==================================================
+    local function setActivePage(activePage)
+        farmContainer.Visible = activePage == "farm"
+        otherWorldContainer.Visible = activePage == "otherWorld"
+        settingsContainer.Visible = activePage == "settings"
+        serversContainer.Visible = activePage == "servers"
 
-local function runBoss(
-    farmName
-)
+        for pageName, pageButton in pairs(pageButtons) do
+            local selected = pageName == activePage
 
-    if activeFarm ~= farmName then
-        return
+            pageButton.BackgroundColor3 =
+                selected and ON_COLOR or OFF_COLOR
+            pageButton.TextColor3 =
+                selected and ON_TEXT or OFF_TEXT
+
+            local stroke = pageButtonStrokes[pageName]
+            stroke.Color = selected
+                and Color3.fromRGB(190, 133, 255)
+                or Color3.fromRGB(82, 68, 103)
+            stroke.Transparency = selected and 0.08 or 0.45
+        end
     end
 
-    local config =
-        farmConfigs[farmName]
+    farmPageButton.MouseButton1Click:Connect(function()
+        setActivePage("farm")
+    end)
 
-    if not config then
-        setStatus("Farm configuration not found")
-        return
-    end
+    settingsPageButton.MouseButton1Click:Connect(function()
+        setActivePage("settings")
+    end)
 
-    local bossBeforeSpecial = nil
-    local offHeadSlot = nil
+    serversPageButton.MouseButton1Click:Connect(function()
+        setActivePage("servers")
+        loadServersList()
+    end)
 
-    --==============================================
-    -- GO TO PORTAL (ONLY IF THE BOSS IS NOT PRESENT)
-    --==============================================
+    otherWorldPageButton.MouseButton1Click:Connect(function()
+        setActivePage("otherWorld")
+    end)
 
-    local bossAlreadyPresent = false
+    setActivePage("farm")
 
-    if config.offHeadDeathBySlot then
-        bossAlreadyPresent = findOffHeadSlot() ~= nil
-    else
-        bossAlreadyPresent = findBossModel(config.bossName) ~= nil
-    end
+    --==================================================
+    -- FORMAT TIME
+    --==================================================
 
-    if farmNeedsTeleport or not bossAlreadyPresent then
-        setStatus(
-            "Teleporting to the " .. config.displayName .. " portal"
-        )
+    local function formatTime(seconds)
 
-        local teleported =
-            teleportToPortal(
-                config.portal,
-                farmName
+        seconds =
+            math.floor(seconds)
+
+        local hours =
+            math.floor(seconds / 3600)
+
+        local minutes =
+            math.floor(
+                (seconds % 3600) / 60
             )
 
+        local secs =
+            seconds % 60
+
+        return string.format(
+            "%02d:%02d:%02d",
+            hours,
+            minutes,
+            secs
+        )
+    end
+
+    --==================================================
+    -- GUI LIVE STATS
+    --==================================================
+
+    task.spawn(function()
+
+        while true do
+
+            task.wait(0.25)
+
+            local currentFarmTime =
+                totalFarmTime
+
+            if activeFarm and farmStartTime then
+
+                currentFarmTime +=
+                    tick() - farmStartTime
+            end
+
+            local level =
+                getLevel()
+
+            local gold = 0
+
+            pcall(function()
+
+                local leaderstats =
+                    player:FindFirstChild(
+                        "leaderstats"
+                    )
+
+                if leaderstats then
+
+                    local goldValue =
+                        leaderstats:FindFirstChild(
+                            "Gold"
+                        )
+
+                    if goldValue then
+
+                        gold =
+                            tonumber(
+                                goldValue.Value
+                            ) or 0
+                    end
+                end
+
+            end)
+
+            if activeFarm then
+
+                farmInfo.Text =
+                    "● ACTIVE: " ..
+                    farmConfigs[
+                        activeFarm
+                    ].displayName
+
+            else
+
+                farmInfo.Text =
+                    "Farm inactive"
+            end
+
+            settingsStats.Text =
+                "   LIVE STATS\n\n" ..
+
+                "   LEVEL: " ..
+                tostring(level) ..
+
+                "\n   GOLD: " ..
+                tostring(gold) ..
+
+                "\n\n   TOTAL BOSS KILLS: " ..
+                tostring(totalKills) ..
+
+                "\n\n   UNDYNE: " ..
+                tostring(kills.Undyne) ..
+
+                "        OUTERTALE: " ..
+                tostring(kills.Outertale) ..
+
+                "\n   HYPERDUST: " ..
+                tostring(kills.Hyperdust) ..
+
+                "        BOB: " ..
+                tostring(kills.Bob) ..
+
+                "\n   OFF HEAD: " ..
+                tostring(kills.OffHead) ..
+
+                "        SUSPORTAL: " ..
+                tostring(kills.Susportal) ..
+
+                "\n   WATERCOOLER: " ..
+                tostring(kills.Watercooler) ..
+
+                "\n\n   TOTAL AUTO FARM TIME: " ..
+                formatTime(
+                    currentFarmTime
+                )
+        end
+    end)
+
+    --==================================================
+    -- AUTO LEVEL LOOP
+    --==================================================
+
+    task.spawn(function()
+
+        while true do
+
+            task.wait(0.5)
+
+            if autoLevel then
+
+                local level =
+                    getLevel()
+
+                local target =
+                    getBossForLevel(level)
+
+                if target
+                    and target ~= activeFarm then
+
+                    if activeFarm and farmStartTime then
+                        pauseFarmTimer()
+                    end
+
+                    releaseHeldInputs()
+                    activeFarm = target
+                    farmNeedsTeleport = true
+                    resumeFarmTimer()
+                    setStatus(
+                        farmConfigs[target].displayName
+                        .. " selected; waiting to teleport"
+                    )
+
+                    resetBossButtons()
+
+                    setButtonState(
+                        target,
+                        true
+                    )
+                end
+            end
+        end
+    end)
+
+    --==================================================
+    -- REGISTER KILL
+    --==================================================
+
+    local function registerKill(farmName)
+
+        totalKills += 1
+
+        if kills[farmName] ~= nil then
+            kills[farmName] += 1
+        end
+    end
+
+    --==================================================
+    -- SAFE
+    --==================================================
+
+    local function goSafe()
+
+        pcall(function()
+
+            local char =
+                player.Character
+
+            local root =
+                char and
+                char:FindFirstChild(
+                    "HumanoidRootPart"
+                )
+
+            if root then
+
+                root.AssemblyLinearVelocity =
+                    Vector3.new(0, 0, 0)
+
+                root.CFrame =
+                    safePosition
+            end
+        end)
+    end
+
+    local function goWatercoolerSafe()
+        local character = player.Character
+        local root = character
+            and character:FindFirstChild("HumanoidRootPart")
+
+        if not root then
+            warn("Could not move to the Watercooler safe position: character root was not found")
+            return false
+        end
+
+        root.AssemblyLinearVelocity = Vector3.zero
+        root.CFrame = watercoolerSafePosition
+        return true
+    end
+
+    local function teleportToPortal(portal, farmName)
+        if activeFarm ~= farmName then
+            return false
+        end
+
+        local succeeded, err =
+            pcall(function()
+                local character = player.Character
+
+                if not character then
+                    character = player.CharacterAdded:Wait()
+                end
+
+                local root =
+                    character:WaitForChild(
+                        "HumanoidRootPart",
+                        10
+                    )
+
+                if not root or activeFarm ~= farmName then
+                    return false
+                end
+
+                root.AssemblyLinearVelocity =
+                    Vector3.new(0, 0, 0)
+
+                root.CFrame = portal
+                return true
+            end)
+
+        if not succeeded then
+            warn("Portal teleport failed: " .. tostring(err))
+            return false
+        end
+
+        return err == true
+    end
+
+    local function flyToCFrame(farmName, targetCFrame)
+        local character = player.Character
+        local root = character
+            and character:FindFirstChild("HumanoidRootPart")
+
+        if not root then
+            return false, "HumanoidRootPart was not found"
+        end
+
+        local startCFrame = root.CFrame
+        local distance = (targetCFrame.Position - startCFrame.Position).Magnitude
+        local duration = math.max(distance / 120, 0.75)
+        local startedAt = tick()
+        setStatus(string.format(
+            "Flying to Watercooler; %.0f studs to target",
+            distance
+        ))
+
+        while true do
+            if activeFarm ~= farmName then
+                return false, "cancelled"
+            end
+
+            character = player.Character
+            root = character
+                and character:FindFirstChild("HumanoidRootPart")
+
+            if not root then
+                return false, "HumanoidRootPart disappeared during flight"
+            end
+
+            local alpha = math.min((tick() - startedAt) / duration, 1)
+            root.CFrame = startCFrame:Lerp(targetCFrame, alpha)
+            root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+
+            if alpha >= 1 then
+                return true
+            end
+
+            RunService.Heartbeat:Wait()
+        end
+    end
+
+    local function runWatercoolerFarm(farmName, config)
         if activeFarm ~= farmName then
             return
         end
 
-        if not teleported then
-            farmNeedsTeleport = true
-            setStatus("Teleport failed; retrying")
-            task.wait(1)
+        local function waitForLivingCharacter()
+            while activeFarm == farmName do
+                local character = player.Character
+                local humanoid = character
+                    and character:FindFirstChildOfClass("Humanoid")
+                local root = character
+                    and character:FindFirstChild("HumanoidRootPart")
+
+                if humanoid and humanoid.Health > 0 and root then
+                    return character, humanoid, root
+                end
+
+                setStatus("Waiting for character to respawn")
+                task.wait(0.1)
+            end
+
+            return nil, nil, nil
+        end
+
+        local character, humanoid, root = waitForLivingCharacter()
+
+        if not character then
             return
         end
 
-        pressKey(Enum.KeyCode.W)
-    end
+        local entryCharacter = character
+        local bossAlreadyActive =
+            findClosestBossModel(config.bossName, root.Position) ~= nil
 
-    setStatus("Waiting 6 seconds for the shield")
+        if bossAlreadyActive then
+            setStatus("Watercooler fight already active; skipping entry teleport")
+        else
+            setStatus("Entering the Watercooler fight")
 
-    --==============================================
-    -- 6-SECOND SHIELD
-    --==============================================
+            local succeeded, err = pcall(function()
+                root.AssemblyLinearVelocity = Vector3.zero
+                root.CFrame = config.bossPosition
+            end)
 
-    local shieldTime = 0
-
-    while shieldTime < 6 do
+            if not succeeded then
+                warn("Watercooler position teleport failed: " .. tostring(err))
+                farmNeedsTeleport = true
+                setStatus("Could not reach the Watercooler position")
+                task.wait(1)
+                return
+            end
+        end
 
         if activeFarm ~= farmName then
             return
@@ -2029,164 +2660,660 @@ local function runBoss(
 
         task.wait(0.5)
 
-        shieldTime += 0.5
-    end
+        character, humanoid, root = waitForLivingCharacter()
 
-    if activeFarm ~= farmName then
-        return
-    end
+        if not character then
+            return
+        end
 
-    --==============================================
-    -- WAIT FOR THE TARGET BOSS
-    --==============================================
+        if activeFarm == farmName
+            and character ~= entryCharacter
+            and not findClosestBossModel(config.bossName, root.Position) then
+            root.AssemblyLinearVelocity = Vector3.zero
+            root.CFrame = config.bossPosition
+        end
 
-    setStatus("Searching for " .. config.displayName)
+        setStatus("At Watercooler; waiting 3 seconds before approaching the active boss")
 
-    local boss =
-        findBossModel(config.bossName)
+        for _ = 1, 30 do
+            if activeFarm ~= farmName then
+                return
+            end
 
-    local searchStart =
-        tick()
-
-    if config.offHeadDeathBySlot then
-        local slotSearchStart = tick()
-
-        while not offHeadSlot
-            and activeFarm == farmName
-            and tick() - slotSearchStart < 60 do
-
-            task.wait(0.15)
-
-            offHeadSlot = findOffHeadSlot()
+            task.wait(0.1)
         end
 
         if activeFarm ~= farmName then
             return
         end
 
-        if not offHeadSlot then
-            farmNeedsTeleport = true
-            setStatus("OffHead slot not found; retrying")
-            return
-        end
+        setStatus("Searching all slots for the nearest Watercooler")
 
-    else
-        while not boss
-            and activeFarm == farmName
-            and tick() - searchStart < 60 do
+        local targetBoss = nil
 
-            task.wait(0.15)
+        while activeFarm == farmName and not targetBoss do
+            character = player.Character
+            root = character
+                and character:FindFirstChild("HumanoidRootPart")
 
-            boss =
-                findBossModel(config.bossName)
+            if root then
+                targetBoss = findClosestBossModel(
+                    config.bossName,
+                    root.Position
+                )
+            end
+
+            if not targetBoss then
+                task.wait(0.2)
+            end
         end
 
         if activeFarm ~= farmName then
             return
         end
 
-        if not boss then
+        local function getBossApproachCFrame(boss)
+            local bossPosition = getWatercoolerPartPosition(
+                boss,
+                {"Hitbox", "Torso", "Head"}
+            )
+            local currentCharacter = player.Character
+            local currentRoot = currentCharacter
+                and currentCharacter:FindFirstChild("HumanoidRootPart")
+
+            if not currentRoot then
+                return nil
+            end
+
+            local horizontalDirection = Vector3.new(
+                bossPosition.X - currentRoot.Position.X,
+                0,
+                bossPosition.Z - currentRoot.Position.Z
+            )
+
+            if horizontalDirection.Magnitude <= 0.01 then
+                horizontalDirection = Vector3.new(
+                    boss:GetPivot().LookVector.X,
+                    0,
+                    boss:GetPivot().LookVector.Z
+                )
+            end
+
+            if horizontalDirection.Magnitude <= 0.01 then
+                horizontalDirection = Vector3.new(1, 0, 0)
+            end
+
+            local cornerDirection = CFrame.Angles(
+                0,
+                math.rad(45),
+                0
+            ):VectorToWorldSpace(-horizontalDirection.Unit)
+            local approachOffset = cornerDirection * 68
+
+            local approachPosition =
+                bossPosition
+                + Vector3.new(0, 12, 0)
+                + approachOffset
+
+            approachPosition = Vector3.new(
+                approachPosition.X,
+                approachPosition.Y,
+                approachPosition.Z
+            )
+
+            local aimPosition = getWatercoolerAimPosition(boss)
+            local horizontalAimPosition = Vector3.new(
+                aimPosition.X,
+                approachPosition.Y,
+                aimPosition.Z
+            )
+
+            return CFrame.lookAt(
+                approachPosition,
+                horizontalAimPosition
+            )
+        end
+
+        local function flyToBossApproach(boss)
+            local currentCharacter = player.Character
+            local currentRoot = currentCharacter
+                and currentCharacter:FindFirstChild("HumanoidRootPart")
+
+            if not currentRoot then
+                return false, "HumanoidRootPart was not found"
+            end
+
+            if not isBossModelActive(boss) then
+                return false, "boss disappeared during approach"
+            end
+
+            setStatus("Rising before flying diagonally to the Watercooler corner")
+
+            local verticalTarget = CFrame.new(
+                currentRoot.Position + Vector3.new(0, 12, 0)
+            ) * currentRoot.CFrame.Rotation
+
+            local rose, riseError = flyToCFrame(
+                farmName,
+                verticalTarget
+            )
+
+            if not rose then
+                return false, riseError
+            end
+
+            if not isBossModelActive(boss) then
+                return false, "boss disappeared during approach"
+            end
+
+            local approachCFrame = getBossApproachCFrame(boss)
+
+            if not approachCFrame then
+                return false, "HumanoidRootPart was not found"
+            end
+
+            setStatus("Flying directly toward the active Watercooler")
+
+            return flyToCFrame(
+                farmName,
+                approachCFrame
+            )
+        end
+
+        local function startWatercoolerAttack()
+            task.wait(0.2)
+
+            if activeFarm ~= farmName then
+                return false, "cancelled"
+            end
+
+            if not holdKeyUntilReleased(Enum.KeyCode.Five) then
+                return false, "could not hold key 5"
+            end
+
+            if activeFarm ~= farmName then
+                releaseHeldInputs()
+                return false, "cancelled"
+            end
+
+            if not holdCenterMouse() then
+                releaseHeldInputs()
+                return false, "could not hold center click"
+            end
+
+            setStatus("Near Watercooler; holding 5 and center click")
+            return true
+        end
+
+        local movedToBoss = false
+
+        while activeFarm == farmName and not movedToBoss do
+            if not targetBoss or not isBossModelActive(targetBoss) then
+                character = player.Character
+                root = character
+                    and character:FindFirstChild("HumanoidRootPart")
+
+                if root then
+                    targetBoss = findClosestBossModel(
+                        config.bossName,
+                        root.Position
+                    )
+                end
+
+                if not targetBoss then
+                    setStatus("Waiting for an active Watercooler in any slot")
+                    task.wait(0.2)
+                end
+            end
+
+            if targetBoss and isBossModelActive(targetBoss) then
+                local flightError
+                movedToBoss, flightError = flyToBossApproach(targetBoss)
+
+                if movedToBoss and not isBossModelActive(targetBoss) then
+                    movedToBoss = false
+                    targetBoss = nil
+                end
+
+                if not movedToBoss then
+                    if flightError == "cancelled" then
+                        return
+                    elseif flightError == "boss disappeared during approach" then
+                        targetBoss = nil
+                        task.wait(0.2)
+                    else
+                        warn("Watercooler approach flight failed: " .. tostring(flightError))
+                        setStatus("Could not reach Watercooler; retrying")
+                        farmNeedsTeleport = true
+                        return
+                    end
+                end
+            end
+        end
+
+        if activeFarm ~= farmName or not movedToBoss then
+            return
+        end
+
+        local hoverCFrame = nil
+        local hoverConnection = RunService.Heartbeat:Connect(function()
+            if activeFarm ~= farmName or not hoverCFrame then
+                return
+            end
+
+            local currentCharacter = player.Character
+            local currentRoot = currentCharacter
+                and currentCharacter:FindFirstChild("HumanoidRootPart")
+
+            if currentRoot then
+                local positionDrift =
+                    (currentRoot.Position - hoverCFrame.Position).Magnitude
+                local facingAlignment =
+                    currentRoot.CFrame.LookVector:Dot(hoverCFrame.LookVector)
+
+                if positionDrift > 0.15 or facingAlignment < 0.995 then
+                    currentRoot.CFrame = hoverCFrame
+                end
+
+                if currentRoot.AssemblyLinearVelocity.Magnitude > 0.25 then
+                    currentRoot.AssemblyLinearVelocity = Vector3.zero
+                end
+            end
+        end)
+
+        character = player.Character
+        root = character
+            and character:FindFirstChild("HumanoidRootPart")
+
+        if root then
+            hoverCFrame = root.CFrame
+        else
+            hoverConnection:Disconnect()
+            warn("Watercooler farm stopped: character root was lost before attack")
+            setStatus("Character root lost; retrying Watercooler farm")
             farmNeedsTeleport = true
+            releaseHeldInputs()
+            return
+        end
+
+        farmNeedsTeleport = false
+
+        local attackStarted, attackError = startWatercoolerAttack()
+
+        if not attackStarted then
+            if attackError ~= "cancelled" then
+                warn("Could not start Watercooler attack: " .. attackError)
+                setStatus("Could not start attack; retrying")
+                farmNeedsTeleport = true
+            end
+            hoverConnection:Disconnect()
+            releaseHeldInputs()
+            return
+        end
+
+        if activeFarm ~= farmName then
+            hoverConnection:Disconnect()
+            releaseHeldInputs()
+            return
+        end
+
+        if not heldMousePosition then
+            warn("Watercooler attack started without a held mouse button")
+            setStatus("Attack input was lost; retrying")
+            farmNeedsTeleport = true
+            hoverConnection:Disconnect()
+            releaseHeldInputs()
+            return
+        end
+
+        local missingSince = nil
+        local lastMouseHoldRefresh = tick()
+        while activeFarm == farmName do
+            character = player.Character
+            humanoid = character
+                and character:FindFirstChildOfClass("Humanoid")
+            root = character
+                and character:FindFirstChild("HumanoidRootPart")
+
+            if not humanoid or humanoid.Health <= 0 then
+                setStatus("Character died; releasing attack and waiting to respawn")
+                farmNeedsTeleport = true
+                hoverConnection:Disconnect()
+                releaseHeldInputs()
+                return
+            elseif root then
+                root.AssemblyLinearVelocity = Vector3.zero
+            else
+                warn("Watercooler character root was lost; retrying farm")
+                setStatus("Character lost; retrying Watercooler farm")
+                farmNeedsTeleport = true
+                hoverConnection:Disconnect()
+                releaseHeldInputs()
+                return
+            end
+
+            if heldMousePosition and tick() - lastMouseHoldRefresh >= 0.75 then
+                if not repeatHeldMouseDown() then
+                    warn("Could not maintain attack hold; retrying Watercooler farm")
+                    setStatus("Could not maintain attack hold; retrying")
+                    farmNeedsTeleport = true
+                    hoverConnection:Disconnect()
+                    releaseHeldInputs()
+                    return
+                end
+
+                lastMouseHoldRefresh = tick()
+            end
+
+            if targetBoss and isBossModelActive(targetBoss) then
+                missingSince = nil
+            elseif targetBoss then
+                missingSince = missingSince or tick()
+
+                if tick() - missingSince >= 0.75 then
+                    registerKill(farmName)
+                    releaseHeldInputs()
+                    hoverCFrame = nil
+                    targetBoss = nil
+                    missingSince = nil
+                    setStatus("Watercooler defeated; returning safe for 5 seconds")
+                    goWatercoolerSafe()
+
+                    for _ = 1, 50 do
+                        if activeFarm ~= farmName then
+                            hoverConnection:Disconnect()
+                            return
+                        end
+
+                        task.wait(0.1)
+                    end
+
+                    if activeFarm == farmName then
+                        farmNeedsTeleport = true
+                        setStatus("5-second safe wait complete; re-entering Watercooler")
+                    end
+
+                    hoverConnection:Disconnect()
+                    releaseHeldInputs()
+                    return
+                end
+            end
+
+            if not targetBoss then
+                character = player.Character
+                root = character
+                    and character:FindFirstChild("HumanoidRootPart")
+
+                if root then
+                    local nextBoss = findClosestBossModel(
+                        config.bossName,
+                        root.Position
+                    )
+
+                    if nextBoss then
+                        hoverCFrame = nil
+                        local reachedBoss, nextFlightError =
+                            flyToBossApproach(nextBoss)
+
+                        if reachedBoss then
+                            targetBoss = nextBoss
+                            character = player.Character
+                            root = character
+                                and character:FindFirstChild("HumanoidRootPart")
+
+                            if root then
+                                hoverCFrame = root.CFrame
+                            else
+                                warn("Watercooler attack could not start: character root was lost")
+                                setStatus("Character root lost; retrying Watercooler farm")
+                                farmNeedsTeleport = true
+                                hoverConnection:Disconnect()
+                                releaseHeldInputs()
+                                return
+                            end
+
+                            local attackStarted, attackError =
+                                startWatercoolerAttack()
+
+                            if not attackStarted then
+                                if attackError ~= "cancelled" then
+                                    warn("Could not start next Watercooler attack: " .. attackError)
+                                    setStatus("Could not start next attack; retrying")
+                                    farmNeedsTeleport = true
+                                end
+                                hoverConnection:Disconnect()
+                                releaseHeldInputs()
+                                return
+                            end
+
+                            if activeFarm ~= farmName then
+                                farmNeedsTeleport = true
+                                hoverConnection:Disconnect()
+                                releaseHeldInputs()
+                                return
+                            end
+
+                            lastMouseHoldRefresh = tick()
+                        elseif nextFlightError == "boss disappeared during approach" then
+                            setStatus("Watercooler disappeared; searching every slot again")
+                        elseif nextFlightError ~= "cancelled" then
+                            warn("Watercooler re-approach failed: " .. tostring(nextFlightError))
+                            setStatus("Could not reach next Watercooler; retrying")
+                            farmNeedsTeleport = true
+                            hoverConnection:Disconnect()
+                            releaseHeldInputs()
+                            return
+                        end
+                    end
+                end
+            end
+
+            task.wait(0.1)
+        end
+
+        hoverConnection:Disconnect()
+        releaseHeldInputs()
+    end
+
+    --==================================================
+    -- BOSS FARM
+    --==================================================
+
+    local function runBoss(
+        farmName
+    )
+
+        if activeFarm ~= farmName then
+            return
+        end
+
+        local config =
+            farmConfigs[farmName]
+
+        if not config then
+            setStatus("Farm configuration not found")
+            return
+        end
+
+        if config.otherWorld then
+            local succeeded, err = pcall(function()
+                runWatercoolerFarm(farmName, config)
+            end)
+
+            if not succeeded then
+                warn("Watercooler farm failed: " .. tostring(err))
+                releaseHeldInputs()
+
+                if activeFarm == farmName then
+                    farmNeedsTeleport = true
+                    setStatus("Watercooler farm error; retrying")
+                    task.wait(1)
+                end
+            end
+
+            return
+        end
+
+        local bossBeforeSpecial = nil
+        local offHeadSlot = nil
+
+        --==============================================
+        -- GO TO PORTAL (ONLY IF THE BOSS IS NOT PRESENT)
+        --==============================================
+
+        local bossAlreadyPresent = false
+
+        if config.offHeadDeathBySlot then
+            bossAlreadyPresent = findOffHeadSlot() ~= nil
+        else
+            bossAlreadyPresent = findBossModel(config.bossName) ~= nil
+        end
+
+        if farmNeedsTeleport or not bossAlreadyPresent then
             setStatus(
-                config.displayName .. " not found; retrying"
+                "Teleporting to the " .. config.displayName .. " portal"
             )
-            return
+
+            local teleported =
+                teleportToPortal(
+                    config.portal,
+                    farmName
+                )
+
+            if activeFarm ~= farmName then
+                return
+            end
+
+            if not teleported then
+                farmNeedsTeleport = true
+                setStatus("Teleport failed; retrying")
+                task.wait(1)
+                return
+            end
+
+            pressKey(Enum.KeyCode.W)
         end
-    end
 
-    farmNeedsTeleport = false
-    bossBeforeSpecial = boss
-    setStatus(config.displayName .. " found; starting attack")
+        setStatus("Waiting 6 seconds for the shield")
 
-    --==============================================
-    -- UNDYNE COMBAT LOGIC
-    -- 5 → 1 → CENTER CLICK
-    --==============================================
+        --==============================================
+        -- 6-SECOND SHIELD
+        --==============================================
 
-    if config.special then
+        local shieldTime = 0
 
-        setStatus("Using special ability")
-        useSpecialAbility()
+        while shieldTime < 6 do
+
+            if activeFarm ~= farmName then
+                return
+            end
+
+            task.wait(0.5)
+
+            shieldTime += 0.5
+        end
 
         if activeFarm ~= farmName then
             return
         end
 
-        -- Always press 1 after 5
-        equipSword()
+        --==============================================
+        -- WAIT FOR THE TARGET BOSS
+        --==============================================
 
-        task.wait(0.15)
+        setStatus("Searching for " .. config.displayName)
 
-    else
+        local boss =
+            findBossModel(config.bossName)
 
-        equipSword()
-    end
+        local searchStart =
+            tick()
 
-    setStatus("Fighting " .. config.displayName)
+        if config.offHeadDeathBySlot then
+            local slotSearchStart = tick()
 
-    --==============================================
-    -- CHECK IF KEY 5 ALONE DEFEATED THE BOSS
-    --==============================================
+            while not offHeadSlot
+                and activeFarm == farmName
+                and tick() - slotSearchStart < 60 do
 
-    if config.offHeadDeathBySlot then
+                task.wait(0.15)
 
-        -- For Off Head, only the slot disappearing counts as a kill.
-        -- Detect a kill from the key-5 ability here.
-        if offHeadSlot and not offHeadSlotExists(offHeadSlot) then
+                offHeadSlot = findOffHeadSlot()
+            end
 
-            registerKill(
-                farmName
-            )
+            if activeFarm ~= farmName then
+                return
+            end
 
-            farmNeedsTeleport = true
-            setStatus("Boss defeated; returning to the safe position")
+            if not offHeadSlot then
+                farmNeedsTeleport = true
+                setStatus("OffHead slot not found; retrying")
+                return
+            end
 
-            task.wait(2)
+        else
+            while not boss
+                and activeFarm == farmName
+                and tick() - searchStart < 60 do
 
-            goSafe()
+                task.wait(0.15)
 
-            return
+                boss =
+                    findBossModel(config.bossName)
+            end
+
+            if activeFarm ~= farmName then
+                return
+            end
+
+            if not boss then
+                farmNeedsTeleport = true
+                setStatus(
+                    config.displayName .. " not found; retrying"
+                )
+                return
+            end
         end
 
-    elseif bossBeforeSpecial then
+        farmNeedsTeleport = false
+        bossBeforeSpecial = boss
+        setStatus(config.displayName .. " found; starting attack")
 
-        if not findBossModel(
-            config.bossName
-        ) then
+        --==============================================
+        -- UNDYNE COMBAT LOGIC
+        -- 5 → 1 → CENTER CLICK
+        --==============================================
 
-            registerKill(
-                farmName
-            )
+        if config.special then
 
-            farmNeedsTeleport = true
-            setStatus("Boss defeated; returning to the safe position")
+            setStatus("Using special ability")
+            useSpecialAbility()
 
-            task.wait(2)
+            if activeFarm ~= farmName then
+                return
+            end
 
-            goSafe()
+            -- Always press 1 after 5
+            equipSword()
 
-            return
+            task.wait(0.15)
+
+        else
+
+            equipSword()
         end
-    end
 
-    --==============================================
-    -- NORMAL AUTO-CLICK
-    -- Off Head attacks the same way as Undyne:
-    -- equipSword() + centerClick()
-    --==============================================
+        setStatus("Fighting " .. config.displayName)
 
-    local lastClick = 0
-
-    while activeFarm == farmName do
-
-        if activeFarm ~= farmName then
-            return
-        end
+        --==============================================
+        -- CHECK IF KEY 5 ALONE DEFEATED THE BOSS
+        --==============================================
 
         if config.offHeadDeathBySlot then
 
-            -- Off Head death = the captured ActiveBosses slot disappearing
-            if not offHeadSlotExists(offHeadSlot) then
+            -- For Off Head, only the slot disappearing counts as a kill.
+            -- Detect a kill from the key-5 ability here.
+            if offHeadSlot and not offHeadSlotExists(offHeadSlot) then
 
                 registerKill(
                     farmName
@@ -2202,15 +3329,11 @@ local function runBoss(
                 return
             end
 
-        else
+        elseif bossBeforeSpecial then
 
-            boss =
-                findBossModel(
-                    config.bossName
-                )
-
-            -- Keep the existing death detection for other bosses.
-            if not boss then
+            if not findBossModel(
+                config.bossName
+            ) then
 
                 registerKill(
                     farmName
@@ -2227,49 +3350,107 @@ local function runBoss(
             end
         end
 
-        if tick() - lastClick >= 0.10 then
+        --==============================================
+        -- NORMAL AUTO-CLICK
+        -- Off Head attacks the same way as Undyne:
+        -- equipSword() + centerClick()
+        --==============================================
 
-            centerClick()
+        local lastClick = 0
 
-            lastClick = tick()
-        end
+        while activeFarm == farmName do
 
-        task.wait(0.03)
-    end
-end
+            if activeFarm ~= farmName then
+                return
+            end
 
---==================================================
--- MAIN FARM LOOP
---==================================================
+            if config.offHeadDeathBySlot then
 
-task.spawn(function()
+                -- Off Head death = the captured ActiveBosses slot disappearing
+                if not offHeadSlotExists(offHeadSlot) then
 
-    while true do
+                    registerKill(
+                        farmName
+                    )
 
-        if activeFarm then
+                    farmNeedsTeleport = true
+                    setStatus("Boss defeated; returning to the safe position")
 
-            local selectedFarm =
-                activeFarm
+                    task.wait(2)
 
-            runBoss(
-                selectedFarm
-            )
+                    goSafe()
 
-            -- If the selected farm is unchanged,
-            -- continue to the next cycle.
-            if activeFarm ==
-                selectedFarm then
-
-                if not farmStartTime then
-                    farmStartTime = tick()
+                    return
                 end
 
-                task.wait(0.5)
+            else
+
+                boss =
+                    findBossModel(
+                        config.bossName
+                    )
+
+                -- Keep the existing death detection for other bosses.
+                if not boss then
+
+                    registerKill(
+                        farmName
+                    )
+
+                    farmNeedsTeleport = true
+                    setStatus("Boss defeated; returning to the safe position")
+
+                    task.wait(2)
+
+                    goSafe()
+
+                    return
+                end
             end
 
-        else
+            if tick() - lastClick >= 0.10 then
 
-            task.wait(0.2)
+                centerClick()
+
+                lastClick = tick()
+            end
+
+            task.wait(0.03)
         end
     end
-end)
+
+    --==================================================
+    -- MAIN FARM LOOP
+    --==================================================
+
+    task.spawn(function()
+
+        while true do
+
+            if activeFarm then
+
+                local selectedFarm =
+                    activeFarm
+
+                runBoss(
+                    selectedFarm
+                )
+
+                -- If the selected farm is unchanged,
+                -- continue to the next cycle.
+                if activeFarm ==
+                    selectedFarm then
+
+                    if not farmStartTime then
+                        farmStartTime = tick()
+                    end
+
+                    task.wait(0.5)
+                end
+
+            else
+
+                task.wait(0.2)
+            end
+        end
+    end)
