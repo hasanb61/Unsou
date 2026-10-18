@@ -8,7 +8,7 @@ local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
 
--- true: Undyne/Outertale/Hyperdust bitince safe noktaya gitme, odada kal
+-- true: Undyne/Outertale/Hyperdust/FS Emerald bitince safe noktaya gitme, odada kal
 local SKIP_SAFE_ON_WALK = true
 
 --==================================================
@@ -40,6 +40,7 @@ local outertalePortal = CFrame.new(-2383.7333984375, 533.9141235351562, -578.871
 local hyperdustPortal = CFrame.new(-2403.167236328125, 533.9141235351562, -572.8255004882812)
 local bobPortal = CFrame.new(-8357.2255859375, 1256.5865478515625, -860.2608642578125)
 local offHeadPortal = CFrame.new(-2443.704345703125, 533.9141235351562, -443.5326843261719)
+local fsEmeraldPortal = CFrame.new(-2386.22806640625, 533.9140625, -744.7925415039062)
 
 local susportalPortal = CFrame.new(
     -427.47149658203125, 63.88474655151367, -1284.06689453125,
@@ -77,6 +78,7 @@ end)
 
 --==================================================
 -- FARM CONFIG
+-- prefixMatch = true: model adi bossName ile BASLIYORSA eslesir
 --==================================================
 
 local farmConfigs = {
@@ -104,6 +106,16 @@ local farmConfigs = {
         portal = hyperdustPortal,
         special = true,
         heal = false,
+        walk = true
+    },
+
+    FSEmerald = {
+        displayName = "FS EMERALD PAPYRUS",
+        bossName = "FS Emerald Papyr",
+        prefixMatch = true,
+        portal = fsEmeraldPortal,
+        special = true,
+        heal = true,
         walk = true
     },
 
@@ -159,6 +171,7 @@ local kills = {
     Undyne = 0,
     Outertale = 0,
     Hyperdust = 0,
+    FSEmerald = 0,
     Bob = 0,
     OffHead = 0,
     Susportal = 0,
@@ -317,9 +330,22 @@ end
 
 --==================================================
 -- BOSS MODELI BULMA
+-- Tum slotlari tarar, slot numarasi degisse de sorun olmaz.
 --==================================================
 
-local function findBossModel(bossName)
+local function nameMatches(objName, target, prefix)
+    if objName == target then
+        return true
+    end
+
+    if prefix then
+        return string.lower(string.sub(objName, 1, #target)) == string.lower(target)
+    end
+
+    return false
+end
+
+local function findBossModel(bossName, prefix)
     local activeBosses = workspace:FindFirstChild("ActiveBosses")
 
     if not activeBosses then
@@ -330,14 +356,8 @@ local function findBossModel(bossName)
         local bossesFolder = slot:FindFirstChild("Bosses")
 
         if bossesFolder then
-            local directBoss = bossesFolder:FindFirstChild(bossName)
-
-            if directBoss and directBoss:IsA("Model") then
-                return directBoss
-            end
-
             for _, obj in ipairs(bossesFolder:GetDescendants()) do
-                if obj:IsA("Model") and obj.Name == bossName then
+                if obj:IsA("Model") and nameMatches(obj.Name, bossName, prefix) then
                     return obj
                 end
             end
@@ -921,7 +941,8 @@ local bossOrder = {
     "Hyperdust",
     "Bob",
     "OffHead",
-    "Susportal"
+    "Susportal",
+    "FSEmerald"
 }
 
 local buttonPositions = {
@@ -930,7 +951,8 @@ local buttonPositions = {
     Hyperdust = {360, 0},
     Bob = {0, 52},
     OffHead = {180, 52},
-    Susportal = {360, 52}
+    Susportal = {360, 52},
+    FSEmerald = {0, 104}
 }
 
 --==================================================
@@ -1059,7 +1081,7 @@ end
 
 local autoLevelButton = Instance.new("TextButton")
 autoLevelButton.Size = UDim2.new(0, 165, 0, 42)
-autoLevelButton.Position = UDim2.new(0, 0, 0, 104)
+autoLevelButton.Position = UDim2.new(0, 180, 0, 104)
 autoLevelButton.BackgroundColor3 = OFF_COLOR
 autoLevelButton.TextColor3 = OFF_TEXT
 autoLevelButton.Text = "AUTO LEVEL [OFF]"
@@ -1129,7 +1151,7 @@ end)
 
 local npcTeleportButton = Instance.new("TextButton")
 npcTeleportButton.Size = UDim2.new(0, 165, 0, 42)
-npcTeleportButton.Position = UDim2.new(0, 360, 0, 156)
+npcTeleportButton.Position = UDim2.new(0, 360, 0, 104)
 npcTeleportButton.BackgroundColor3 = OFF_COLOR
 npcTeleportButton.TextColor3 = OFF_TEXT
 npcTeleportButton.Text = "TELEPORT TO XP NPC"
@@ -1194,8 +1216,8 @@ end)
 --==================================================
 
 local farmInfo = Instance.new("TextLabel")
-farmInfo.Size = UDim2.new(0, 345, 0, 42)
-farmInfo.Position = UDim2.new(0, 180, 0, 104)
+farmInfo.Size = UDim2.new(0, 525, 0, 42)
+farmInfo.Position = UDim2.new(0, 0, 0, 156)
 farmInfo.BackgroundColor3 = Color3.fromRGB(21, 21, 27)
 farmInfo.TextColor3 = Color3.fromRGB(175, 175, 185)
 farmInfo.Text = "Farm inactive"
@@ -1209,8 +1231,8 @@ farmInfoCorner.CornerRadius = UDim.new(0, 10)
 farmInfoCorner.Parent = farmInfo
 
 statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(0, 345, 0, 42)
-statusLabel.Position = UDim2.new(0, 0, 0, 156)
+statusLabel.Size = UDim2.new(0, 525, 0, 42)
+statusLabel.Position = UDim2.new(0, 0, 0, 208)
 statusLabel.BackgroundColor3 = Color3.fromRGB(21, 21, 27)
 statusLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
 statusLabel.Text = "STATUS: " .. currentStatus
@@ -1235,7 +1257,7 @@ settingsContainer.Visible = false
 settingsContainer.Parent = frame
 
 local settingsStats = Instance.new("TextLabel")
-settingsStats.Size = UDim2.new(1, 0, 0, 220)
+settingsStats.Size = UDim2.new(1, 0, 0, 240)
 settingsStats.Position = UDim2.new(0, 0, 0, 0)
 settingsStats.BackgroundColor3 = Color3.fromRGB(21, 21, 27)
 settingsStats.TextColor3 = Color3.fromRGB(220, 220, 230)
@@ -1542,7 +1564,8 @@ task.spawn(function()
             "        BOB: " .. tostring(kills.Bob) ..
             "\n   OFF HEAD: " .. tostring(kills.OffHead) ..
             "        SUSPORTAL: " .. tostring(kills.Susportal) ..
-            "\n   WATERCOOLER: " .. tostring(kills.Watercooler) ..
+            "\n   FS EMERALD: " .. tostring(kills.FSEmerald) ..
+            "        WATERCOOLER: " .. tostring(kills.Watercooler) ..
             "\n\n   TOTAL AUTO FARM TIME: " .. formatTime(currentFarmTime)
     end
 end)
@@ -2314,7 +2337,7 @@ local function runBoss(farmName)
     if config.offHeadDeathBySlot then
         bossAlreadyPresent = findOffHeadSlot() ~= nil
     else
-        bossAlreadyPresent = findBossModel(config.bossName) ~= nil
+        bossAlreadyPresent = findBossModel(config.bossName, config.prefixMatch) ~= nil
     end
 
     if farmNeedsTeleport or not bossAlreadyPresent then
@@ -2375,7 +2398,7 @@ local function runBoss(farmName)
 
     setStatus("Searching for " .. config.displayName)
 
-    local boss = findBossModel(config.bossName)
+    local boss = findBossModel(config.bossName, config.prefixMatch)
     local searchStart = tick()
 
     if config.offHeadDeathBySlot then
@@ -2404,7 +2427,7 @@ local function runBoss(farmName)
             and tick() - searchStart < 60 do
 
             task.wait(0.15)
-            boss = findBossModel(config.bossName)
+            boss = findBossModel(config.bossName, config.prefixMatch)
         end
 
         if activeFarm ~= farmName then
@@ -2461,7 +2484,7 @@ local function runBoss(farmName)
             return
         end
     elseif bossBeforeSpecial then
-        if not findBossModel(config.bossName) then
+        if not findBossModel(config.bossName, config.prefixMatch) then
             registerKill(farmName)
             farmNeedsTeleport = true
             setStatus("Boss defeated")
@@ -2499,7 +2522,7 @@ local function runBoss(farmName)
                 return
             end
         else
-            boss = findBossModel(config.bossName)
+            boss = findBossModel(config.bossName, config.prefixMatch)
 
             if not boss then
                 registerKill(farmName)
