@@ -79,6 +79,7 @@ end)
 --==================================================
 -- FARM CONFIG
 -- prefixMatch = true: model adi bossName ile BASLIYORSA eslesir
+-- fsCombat = true: FS Emerald'a ozel savas dongusu
 --==================================================
 
 local farmConfigs = {
@@ -115,8 +116,9 @@ local farmConfigs = {
         prefixMatch = true,
         portal = fsEmeraldPortal,
         special = true,
-        heal = true,
-        walk = true
+        heal = false,
+        walk = true,
+        fsCombat = true
     },
 
     Bob = {
@@ -559,7 +561,7 @@ local function getHealthPercent()
 end
 
 --==================================================
--- HEAL
+-- HEAL (Susportal icin: 3 tusu, can %30 alti)
 --==================================================
 
 local healing = false
@@ -596,7 +598,7 @@ local function doHeal()
 end
 
 --==================================================
--- AUTO HEAL
+-- AUTO HEAL (sadece config.heal = true olan bosslar)
 --==================================================
 
 task.spawn(function()
@@ -2291,6 +2293,110 @@ local function runWatercoolerFarm(farmName, config)
 end
 
 --==================================================
+-- FS EMERALD PAPYRUS OZEL SAVAS
+-- Acilis: 1 ile bir vurus, 2 ile bir vurus, tekrar 1
+-- Her 20 sn: 2'yi eline al, bir vur, 1'e don
+-- Can <= %30: 3 (heal) | Can <= %50: 4 (heal)
+--==================================================
+
+local function useHealItem(key)
+    pcall(function()
+        pressKey(key)
+
+        task.wait(0.05)
+
+        local viewport = workspace.CurrentCamera.ViewportSize
+        local clickX = viewport.X / 2
+        local clickY = viewport.Y - 100
+
+        VIM:SendMouseButtonEvent(clickX, clickY, 0, true, game, 1)
+        task.wait(0.05)
+        VIM:SendMouseButtonEvent(clickX, clickY, 0, false, game, 1)
+
+        task.wait(0.3)
+
+        equipSword()
+    end)
+end
+
+local function useSecondWeaponOnce()
+    pressKey(Enum.KeyCode.Two)
+    task.wait(0.15)
+    centerClick()
+    task.wait(0.2)
+    equipSword()
+end
+
+local function runFsFight(farmName, config)
+    -- acilis
+    equipSword()
+    task.wait(0.15)
+    centerClick()
+    task.wait(0.2)
+    useSecondWeaponOnce()
+
+    local lastSecond = tick()
+    local lastClick = 0
+    local heal30Ready = true
+    local heal50Ready = true
+    local healBusyUntil = 0
+
+    while activeFarm == farmName do
+        if not findBossModel(config.bossName, config.prefixMatch) then
+            registerKill(farmName)
+            farmNeedsTeleport = true
+            setStatus("Boss defeated")
+
+            task.wait(2)
+
+            afterKill(config)
+
+            return
+        end
+
+        local hp = getHealthPercent()
+
+        if hp then
+            if hp > 30 then
+                heal30Ready = true
+            end
+
+            if hp > 50 then
+                heal50Ready = true
+            end
+
+            if tick() >= healBusyUntil then
+                if hp <= 30 and heal30Ready then
+                    heal30Ready = false
+                    healBusyUntil = tick() + 3.5
+                    setStatus("Low HP; using 3 (heal)")
+                    useHealItem(Enum.KeyCode.Three)
+                    setStatus("Fighting " .. config.displayName)
+                elseif hp <= 50 and heal50Ready then
+                    heal50Ready = false
+                    healBusyUntil = tick() + 3.5
+                    setStatus("HP below 50%; using 4 (heal)")
+                    useHealItem(Enum.KeyCode.Four)
+                    setStatus("Fighting " .. config.displayName)
+                end
+            end
+        end
+
+        if tick() - lastSecond >= 20 then
+            lastSecond = tick()
+            useSecondWeaponOnce()
+        end
+
+        if tick() - lastClick >= 0.10 then
+            centerClick()
+            lastClick = tick()
+        end
+
+        task.wait(0.03)
+    end
+end
+
+--==================================================
 -- BOSS FARMI
 --==================================================
 
@@ -2371,21 +2477,45 @@ local function runBoss(farmName)
         pressKey(Enum.KeyCode.W)
     end
 
-    setStatus("Waiting 6 seconds for the shield")
-
     --==============================================
-    -- 6 SANIYE KALKAN
+    -- GIRIS BEKLEMESI
+    -- FS Emerald: hemen 5 yetenegi, sonra 5 saniye bekle
+    -- Digerleri: 6 saniye kalkan beklemesi
     --==============================================
 
-    local shieldTime = 0
+    if config.fsCombat then
+        setStatus("Using special ability")
+        useSpecialAbility()
 
-    while shieldTime < 6 do
         if activeFarm ~= farmName then
             return
         end
 
-        task.wait(0.5)
-        shieldTime += 0.5
+        setStatus("Waiting 5 seconds")
+
+        local waitTime = 0
+
+        while waitTime < 5 do
+            if activeFarm ~= farmName then
+                return
+            end
+
+            task.wait(0.5)
+            waitTime += 0.5
+        end
+    else
+        setStatus("Waiting 6 seconds for the shield")
+
+        local shieldTime = 0
+
+        while shieldTime < 6 do
+            if activeFarm ~= farmName then
+                return
+            end
+
+            task.wait(0.5)
+            shieldTime += 0.5
+        end
     end
 
     if activeFarm ~= farmName then
@@ -2444,6 +2574,16 @@ local function runBoss(farmName)
     farmNeedsTeleport = false
     bossBeforeSpecial = boss
     setStatus(config.displayName .. " found; starting attack")
+
+    --==============================================
+    -- FS EMERALD: OZEL SAVAS DONGUSU
+    --==============================================
+
+    if config.fsCombat then
+        setStatus("Fighting " .. config.displayName)
+        runFsFight(farmName, config)
+        return
+    end
 
     --==============================================
     -- SALDIRI: 5 -> 1 -> TIKLAMA
