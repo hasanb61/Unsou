@@ -2299,21 +2299,24 @@ end
 -- Can <= %30: 3 (heal) | Can <= %50: 4 (heal)
 --==================================================
 
-local function useHealItem(key)
+-- equipWait: tusa bastiktan sonra tiklamadan once bekleme
+-- holdTime: tiklamayi basili tutma suresi
+-- castTime: tiklamadan sonra kilica donmeden once bekleme
+local function useHealItem(key, equipWait, holdTime, castTime)
     pcall(function()
         pressKey(key)
 
-        task.wait(0.05)
+        task.wait(equipWait)
 
         local viewport = workspace.CurrentCamera.ViewportSize
         local clickX = viewport.X / 2
         local clickY = viewport.Y - 100
 
         VIM:SendMouseButtonEvent(clickX, clickY, 0, true, game, 1)
-        task.wait(0.05)
+        task.wait(holdTime)
         VIM:SendMouseButtonEvent(clickX, clickY, 0, false, game, 1)
 
-        task.wait(0.3)
+        task.wait(castTime)
 
         equipSword()
     end)
@@ -2368,15 +2371,15 @@ local function runFsFight(farmName, config)
             if tick() >= healBusyUntil then
                 if hp <= 30 and heal30Ready then
                     heal30Ready = false
-                    healBusyUntil = tick() + 3.5
+                    healBusyUntil = tick() + 4
                     setStatus("Low HP; using 3 (heal)")
-                    useHealItem(Enum.KeyCode.Three)
+                    useHealItem(Enum.KeyCode.Three, 0.15, 0.1, 0.5)
                     setStatus("Fighting " .. config.displayName)
                 elseif hp <= 50 and heal50Ready then
                     heal50Ready = false
-                    healBusyUntil = tick() + 3.5
+                    healBusyUntil = tick() + 6
                     setStatus("HP below 50%; using 4 (heal)")
-                    useHealItem(Enum.KeyCode.Four)
+                    useHealItem(Enum.KeyCode.Four, 0.6, 0.3, 3)
                     setStatus("Fighting " .. config.displayName)
                 end
             end
