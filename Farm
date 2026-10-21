@@ -629,6 +629,79 @@ task.spawn(function()
 end)
 
 --==================================================
+-- HER 30 SANIYEDE 7 + ZIPLAMA + HAVADA SOL TIK
+--==================================================
+
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+
+        if activeFarm and not healing and not userTouchingScreen then
+            local waitStart = tick()
+
+            while activeFarm and tick() - waitStart < 30 do
+                task.wait(0.2)
+            end
+
+            if activeFarm and not healing and not userTouchingScreen then
+                local character = player.Character
+                local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+                if humanoid and humanoid.Health > 0 then
+                    -- Once 7. slota gec, ardindan ziplama baslat.
+                    pressKey(Enum.KeyCode.Seven)
+                    task.wait(0.1)
+
+                    local camera = workspace.CurrentCamera
+                    local viewport = camera and camera.ViewportSize
+
+                    local jumped = false
+                    local stateConnection = humanoid.StateChanged:Connect(function(_, newState)
+                        if newState == Enum.HumanoidStateType.Jumping
+                            or newState == Enum.HumanoidStateType.Freefall then
+                            jumped = true
+                        end
+                    end)
+
+                    pcall(function()
+                        VIM:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+                        task.wait(0.05)
+                        VIM:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+                    end)
+
+                    local jumpWaitStart = tick()
+                    while not jumped and tick() - jumpWaitStart < 1.5 do
+                        if not activeFarm or healing or userTouchingScreen then
+                            break
+                        end
+                        task.wait(0.01)
+                    end
+
+                    stateConnection:Disconnect()
+
+                    -- Ziplama algilaninca hemen bir kez sol tikla.
+                    if jumped and activeFarm and not healing and not userTouchingScreen and viewport then
+                        local x = viewport.X / 2
+                        local y = viewport.Y / 2
+
+                        pcall(function()
+                            VIM:SendMouseButtonEvent(x, y, 0, true, game, 1)
+                            task.wait(0.04)
+                            VIM:SendMouseButtonEvent(x, y, 0, false, game, 1)
+                        end)
+                    end
+
+                    -- Sonrasinda kilica geri don.
+                    if activeFarm and not healing then
+                        equipSword()
+                    end
+                end
+            end
+        end
+    end
+end)
+
+--==================================================
 -- LEVEL
 --==================================================
 
