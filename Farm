@@ -5,11 +5,20 @@ local VirtualUser = game:GetService("VirtualUser")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 
 -- true: Undyne/Outertale/Hyperdust/FS Emerald bitince safe noktaya gitme, odada kal
 local SKIP_SAFE_ON_WALK = true
+
+local function tween(obj, props, duration)
+    TweenService:Create(
+        obj,
+        TweenInfo.new(duration or 0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        props
+    ):Play()
+end
 
 --==================================================
 -- PAPYRUS SILME (Workspace.Portals icindeki)
@@ -298,6 +307,17 @@ releaseHeldMouse = function()
     return true
 end
 
+-- Heal gibi tiklamalar fareyi biraktigi icin, basili tutma varsa tekrar bas.
+local function restoreHeldMouse()
+    if heldMousePosition then
+        local position = heldMousePosition
+
+        pcall(function()
+            VIM:SendMouseButtonEvent(position.X, position.Y, 0, true, game, 1)
+        end)
+    end
+end
+
 local function releaseHeldInputs()
     return releaseHeldMouse()
 end
@@ -561,7 +581,9 @@ local function getHealthPercent()
 end
 
 --==================================================
--- AUTO HEAL (eski sistem: yalnizca 3 tusu, can %30 alti)
+-- AUTO HEAL (yalnizca 3 tusu, can %30 alti)
+-- Heal tiklamasi fareyi biraktigi icin, Watercooler'daki
+-- basili tutma heal sonrasi tekrar basilir.
 --==================================================
 
 local healing = false
@@ -594,13 +616,16 @@ local function doHeal()
 
         task.wait(0.3)
         equipSword()
+
+        -- Watercooler fix: fare birakildiysa tekrar bas
+        restoreHeldMouse()
+
         task.wait(3.5)
     end)
 
     healing = false
 end
 
--- Tum secili bosslarda yalnizca 3 numarali esyayi kullan.
 task.spawn(function()
     while true do
         task.wait(0.2)
@@ -624,79 +649,6 @@ task.spawn(function()
             end
         else
             healReady = true
-        end
-    end
-end)
-
---==================================================
--- HER 30 SANIYEDE 7 + ZIPLAMA + HAVADA SOL TIK
---==================================================
-
-task.spawn(function()
-    while true do
-        task.wait(0.2)
-
-        if activeFarm and not healing and not userTouchingScreen then
-            local waitStart = tick()
-
-            while activeFarm and tick() - waitStart < 30 do
-                task.wait(0.2)
-            end
-
-            if activeFarm and not healing and not userTouchingScreen then
-                local character = player.Character
-                local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-
-                if humanoid and humanoid.Health > 0 then
-                    -- Once 7. slota gec, ardindan ziplama baslat.
-                    pressKey(Enum.KeyCode.Seven)
-                    task.wait(0.1)
-
-                    local camera = workspace.CurrentCamera
-                    local viewport = camera and camera.ViewportSize
-
-                    local jumped = false
-                    local stateConnection = humanoid.StateChanged:Connect(function(_, newState)
-                        if newState == Enum.HumanoidStateType.Jumping
-                            or newState == Enum.HumanoidStateType.Freefall then
-                            jumped = true
-                        end
-                    end)
-
-                    pcall(function()
-                        VIM:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
-                        task.wait(0.05)
-                        VIM:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
-                    end)
-
-                    local jumpWaitStart = tick()
-                    while not jumped and tick() - jumpWaitStart < 1.5 do
-                        if not activeFarm or healing or userTouchingScreen then
-                            break
-                        end
-                        task.wait(0.01)
-                    end
-
-                    stateConnection:Disconnect()
-
-                    -- Ziplama algilaninca hemen bir kez sol tikla.
-                    if jumped and activeFarm and not healing and not userTouchingScreen and viewport then
-                        local x = viewport.X / 2
-                        local y = viewport.Y / 2
-
-                        pcall(function()
-                            VIM:SendMouseButtonEvent(x, y, 0, true, game, 1)
-                            task.wait(0.04)
-                            VIM:SendMouseButtonEvent(x, y, 0, false, game, 1)
-                        end)
-                    end
-
-                    -- Sonrasinda kilica geri don.
-                    if activeFarm and not healing then
-                        equipSword()
-                    end
-                end
-            end
         end
     end
 end)
@@ -746,6 +698,17 @@ local function getBossForLevel(level)
 end
 
 --==================================================
+-- GUI RENKLERI
+--==================================================
+
+local OFF_COLOR = Color3.fromRGB(27, 27, 38)
+local OFF_TEXT = Color3.fromRGB(196, 194, 211)
+local ON_COLOR = Color3.fromRGB(91, 48, 137)
+local ON_TEXT = Color3.fromRGB(255, 255, 255)
+local HOVER_COLOR = Color3.fromRGB(40, 37, 58)
+local CARD_COLOR = Color3.fromRGB(21, 21, 29)
+
+--==================================================
 -- GUI
 --==================================================
 
@@ -754,8 +717,12 @@ screenGui.Name = "BossFarmUltimateGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player.PlayerGui
 
+local FULL_SIZE = UDim2.new(0, 740, 0, 420)
+local MINI_SIZE = UDim2.new(0, 240, 0, 46)
+local minimized = false
+
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 740, 0, 420)
+frame.Size = FULL_SIZE
 frame.Position = UDim2.new(0.5, -370, 0.08, 0)
 frame.BackgroundColor3 = Color3.fromRGB(17, 17, 24)
 frame.BorderSizePixel = 0
@@ -828,7 +795,7 @@ local versionLabel = Instance.new("TextLabel")
 versionLabel.Name = "VersionText"
 versionLabel.Size = UDim2.new(1, 0, 1, 0)
 versionLabel.BackgroundTransparency = 1
-versionLabel.Text = "v.1.0"
+versionLabel.Text = "v1.1"
 versionLabel.TextColor3 = Color3.fromRGB(218, 190, 255)
 versionLabel.TextSize = 10
 versionLabel.Font = Enum.Font.GothamBold
@@ -836,8 +803,49 @@ versionLabel.TextXAlignment = Enum.TextXAlignment.Center
 versionLabel.ZIndex = 51
 versionLabel.Parent = versionBadge
 
+-- Kucultulmus durumda gorunen etiket
+local miniLabel = Instance.new("TextLabel")
+miniLabel.Name = "MiniLabel"
+miniLabel.Size = UDim2.new(1, -60, 1, 0)
+miniLabel.Position = UDim2.new(0, 18, 0, 0)
+miniLabel.BackgroundTransparency = 1
+miniLabel.Text = "ELITE HUB  •  IDLE"
+miniLabel.TextColor3 = Color3.fromRGB(235, 225, 255)
+miniLabel.TextSize = 12
+miniLabel.Font = Enum.Font.GothamBold
+miniLabel.TextXAlignment = Enum.TextXAlignment.Left
+miniLabel.Visible = false
+miniLabel.ZIndex = 55
+miniLabel.Parent = frame
+
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Name = "MinimizeButton"
+minimizeButton.Size = UDim2.new(0, 30, 0, 24)
+minimizeButton.Position = UDim2.new(1, -42, 0, 11)
+minimizeButton.BackgroundColor3 = Color3.fromRGB(36, 33, 50)
+minimizeButton.Text = "-"
+minimizeButton.TextColor3 = Color3.fromRGB(220, 210, 240)
+minimizeButton.TextSize = 16
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.AutoButtonColor = false
+minimizeButton.BorderSizePixel = 0
+minimizeButton.ZIndex = 60
+minimizeButton.Parent = frame
+
+local minimizeCorner = Instance.new("UICorner")
+minimizeCorner.CornerRadius = UDim.new(0, 8)
+minimizeCorner.Parent = minimizeButton
+
+minimizeButton.MouseEnter:Connect(function()
+    tween(minimizeButton, {BackgroundColor3 = ON_COLOR}, 0.12)
+end)
+
+minimizeButton.MouseLeave:Connect(function()
+    tween(minimizeButton, {BackgroundColor3 = Color3.fromRGB(36, 33, 50)}, 0.12)
+end)
+
 local function styleContentPanel(panel)
-    panel.BackgroundColor3 = Color3.fromRGB(21, 21, 29)
+    panel.BackgroundColor3 = CARD_COLOR
     panel.BackgroundTransparency = 0.12
 
     local corner = Instance.new("UICorner")
@@ -858,8 +866,37 @@ local function styleContentPanel(panel)
     pad.Parent = panel
 end
 
+local function styleCard(card, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 10)
+    corner.Parent = card
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(54, 48, 68)
+    stroke.Transparency = 0.4
+    stroke.Thickness = 1
+    stroke.Parent = card
+end
+
+-- ON/OFF butonlari icin hover efekti
+local function addHover(button)
+    button.AutoButtonColor = false
+
+    button.MouseEnter:Connect(function()
+        if not string.find(button.Text, "%[ON%]") then
+            tween(button, {BackgroundColor3 = HOVER_COLOR}, 0.12)
+        end
+    end)
+
+    button.MouseLeave:Connect(function()
+        if not string.find(button.Text, "%[ON%]") then
+            tween(button, {BackgroundColor3 = OFF_COLOR}, 0.12)
+        end
+    end)
+end
+
 --==================================================
--- SOL MENU (BASLIK + SAYFA BUTONLARI)
+-- SOL MENU (BASLIK + SAYFA BUTONLARI + DURUM KARTI)
 --==================================================
 
 local sidebar = Instance.new("Frame")
@@ -915,13 +952,19 @@ accentGradient.Color = ColorSequence.new({
 })
 accentGradient.Parent = titleAccent
 
-local function makePageButton(text, order)
+local pageButtons = {}
+local pageButtonStrokes = {}
+local pageBars = {}
+local currentPage = "farm"
+local setActivePage
+
+local function makePageButton(pageName, text, order)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, -20, 0, 38)
     b.Position = UDim2.new(0, 10, 0, 76 + (order - 1) * 46)
-    b.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+    b.BackgroundColor3 = OFF_COLOR
     b.Text = text
-    b.TextColor3 = Color3.fromRGB(180, 180, 190)
+    b.TextColor3 = OFF_TEXT
     b.TextSize = 11
     b.Font = Enum.Font.GothamBold
     b.TextXAlignment = Enum.TextXAlignment.Left
@@ -934,34 +977,94 @@ local function makePageButton(text, order)
     c.Parent = b
 
     local p = Instance.new("UIPadding")
-    p.PaddingLeft = UDim.new(0, 12)
+    p.PaddingLeft = UDim.new(0, 14)
     p.Parent = b
 
-    return b
-end
-
-local farmPageButton = makePageButton("AUTO FARM", 1)
-local otherWorldPageButton = makePageButton("OTHER WORLD", 2)
-local settingsPageButton = makePageButton("SETTINGS", 3)
-local serversPageButton = makePageButton("SUNUCULAR", 4)
-
-local pageButtons = {
-    farm = farmPageButton,
-    otherWorld = otherWorldPageButton,
-    settings = settingsPageButton,
-    servers = serversPageButton
-}
-
-local pageButtonStrokes = {}
-
-for pageName, pageButton in pairs(pageButtons) do
     local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(82, 68, 103)
     stroke.Transparency = 0.45
     stroke.Thickness = 1
-    stroke.Parent = pageButton
+    stroke.Parent = b
+
+    -- Aktif sayfa gostergesi (sol kenar cizgisi)
+    local bar = Instance.new("Frame")
+    bar.Name = "Bar"
+    bar.Size = UDim2.new(0, 3, 0, 18)
+    bar.Position = UDim2.new(0, -11, 0.5, -9)
+    bar.BackgroundColor3 = Color3.fromRGB(196, 126, 255)
+    bar.BorderSizePixel = 0
+    bar.Visible = false
+    bar.Parent = b
+
+    local barCorner = Instance.new("UICorner")
+    barCorner.CornerRadius = UDim.new(1, 0)
+    barCorner.Parent = bar
+
+    b.MouseEnter:Connect(function()
+        if currentPage ~= pageName then
+            tween(b, {BackgroundColor3 = HOVER_COLOR}, 0.12)
+        end
+    end)
+
+    b.MouseLeave:Connect(function()
+        if currentPage ~= pageName then
+            tween(b, {BackgroundColor3 = OFF_COLOR}, 0.12)
+        end
+    end)
+
+    pageButtons[pageName] = b
     pageButtonStrokes[pageName] = stroke
+    pageBars[pageName] = bar
+
+    return b
 end
+
+local farmPageButton = makePageButton("farm", "AUTO FARM", 1)
+local otherWorldPageButton = makePageButton("otherWorld", "OTHER WORLD", 2)
+local settingsPageButton = makePageButton("settings", "SETTINGS", 3)
+local serversPageButton = makePageButton("servers", "SUNUCULAR", 4)
+
+-- Sol alt durum karti
+local statusCard = Instance.new("Frame")
+statusCard.Size = UDim2.new(1, -20, 0, 62)
+statusCard.Position = UDim2.new(0, 10, 1, -72)
+statusCard.BackgroundColor3 = CARD_COLOR
+statusCard.BorderSizePixel = 0
+statusCard.Parent = sidebar
+styleCard(statusCard, 10)
+
+local sbDot = Instance.new("Frame")
+sbDot.Size = UDim2.new(0, 9, 0, 9)
+sbDot.Position = UDim2.new(0, 14, 0, 14)
+sbDot.BackgroundColor3 = Color3.fromRGB(120, 118, 135)
+sbDot.BorderSizePixel = 0
+sbDot.Parent = statusCard
+
+local sbDotCorner = Instance.new("UICorner")
+sbDotCorner.CornerRadius = UDim.new(1, 0)
+sbDotCorner.Parent = sbDot
+
+local sbStatus = Instance.new("TextLabel")
+sbStatus.Size = UDim2.new(1, -40, 0, 16)
+sbStatus.Position = UDim2.new(0, 30, 0, 10)
+sbStatus.BackgroundTransparency = 1
+sbStatus.Text = "IDLE"
+sbStatus.TextColor3 = Color3.fromRGB(235, 235, 245)
+sbStatus.TextSize = 11
+sbStatus.Font = Enum.Font.GothamBold
+sbStatus.TextXAlignment = Enum.TextXAlignment.Left
+sbStatus.Parent = statusCard
+
+local sbLevel = Instance.new("TextLabel")
+sbLevel.Size = UDim2.new(1, -24, 0, 16)
+sbLevel.Position = UDim2.new(0, 14, 0, 34)
+sbLevel.BackgroundTransparency = 1
+sbLevel.Text = "LV 0"
+sbLevel.TextColor3 = Color3.fromRGB(167, 153, 190)
+sbLevel.TextSize = 10
+sbLevel.Font = Enum.Font.GothamMedium
+sbLevel.TextXAlignment = Enum.TextXAlignment.Left
+sbLevel.Parent = statusCard
 
 --==================================================
 -- FARM SAYFASI
@@ -972,6 +1075,16 @@ farmContainer.Size = UDim2.new(1, -180, 1, -20)
 farmContainer.Position = UDim2.new(0, 170, 0, 10)
 styleContentPanel(farmContainer)
 farmContainer.Parent = frame
+
+local farmHeader = Instance.new("TextLabel")
+farmHeader.Size = UDim2.new(1, 0, 0, 22)
+farmHeader.BackgroundTransparency = 1
+farmHeader.Text = "BOSS FARM"
+farmHeader.TextColor3 = Color3.fromRGB(235, 235, 245)
+farmHeader.TextSize = 13
+farmHeader.Font = Enum.Font.GothamBold
+farmHeader.TextXAlignment = Enum.TextXAlignment.Left
+farmHeader.Parent = farmContainer
 
 --==================================================
 -- OTHER WORLD SAYFASI
@@ -1004,29 +1117,17 @@ otherWorldInfo.TextSize = 11
 otherWorldInfo.Font = Enum.Font.Gotham
 otherWorldInfo.TextWrapped = true
 otherWorldInfo.Parent = otherWorldContainer
-
-local otherWorldInfoCorner = Instance.new("UICorner")
-otherWorldInfoCorner.CornerRadius = UDim.new(0, 9)
-otherWorldInfoCorner.Parent = otherWorldInfo
+styleCard(otherWorldInfo, 9)
 
 local otherWorldButton
-
---==================================================
--- BUTON RENKLERI
---==================================================
-
-local OFF_COLOR = Color3.fromRGB(27, 27, 38)
-local OFF_TEXT = Color3.fromRGB(196, 194, 211)
-local ON_COLOR = Color3.fromRGB(91, 48, 137)
-local ON_TEXT = Color3.fromRGB(255, 255, 255)
 
 local bossButtons = {}
 
 otherWorldButton = Instance.new("TextButton")
 otherWorldButton.Size = UDim2.new(0, 220, 0, 48)
-otherWorldButton.Position = UDim2.new(0, 0, 0, 104)
-otherWorldButton.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-otherWorldButton.TextColor3 = Color3.fromRGB(180, 180, 190)
+otherWorldButton.Position = UDim2.new(0, 0, 0, 110)
+otherWorldButton.BackgroundColor3 = OFF_COLOR
+otherWorldButton.TextColor3 = OFF_TEXT
 otherWorldButton.Text = "WATERCOOLER [OFF]"
 otherWorldButton.TextSize = 12
 otherWorldButton.Font = Enum.Font.GothamBold
@@ -1042,30 +1143,24 @@ otherWorldButtonCorner.CornerRadius = UDim.new(0, 10)
 otherWorldButtonCorner.Parent = otherWorldButton
 
 local otherWorldButtonStroke = Instance.new("UIStroke")
-otherWorldButtonStroke.Color = Color3.fromRGB(40, 40, 50)
+otherWorldButtonStroke.Color = Color3.fromRGB(91, 75, 119)
+otherWorldButtonStroke.Transparency = 0.2
 otherWorldButtonStroke.Thickness = 1
 otherWorldButtonStroke.Parent = otherWorldButton
 
+addHover(otherWorldButton)
+
 otherWorldStatusLabel = Instance.new("TextLabel")
-otherWorldStatusLabel.Size = UDim2.new(1, -24, 0, 48)
-otherWorldStatusLabel.Position = UDim2.new(0, 12, 0, 168)
-otherWorldStatusLabel.BackgroundColor3 = Color3.fromRGB(21, 21, 29)
+otherWorldStatusLabel.Size = UDim2.new(1, 0, 0, 48)
+otherWorldStatusLabel.Position = UDim2.new(0, 0, 0, 172)
+otherWorldStatusLabel.BackgroundColor3 = CARD_COLOR
 otherWorldStatusLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
 otherWorldStatusLabel.Text = "STATUS: " .. currentStatus
 otherWorldStatusLabel.TextSize = 11
 otherWorldStatusLabel.Font = Enum.Font.GothamSemibold
 otherWorldStatusLabel.TextWrapped = true
 otherWorldStatusLabel.Parent = otherWorldContainer
-
-local otherWorldStatusCorner = Instance.new("UICorner")
-otherWorldStatusCorner.CornerRadius = UDim.new(0, 9)
-otherWorldStatusCorner.Parent = otherWorldStatusLabel
-
-local otherWorldStatusStroke = Instance.new("UIStroke")
-otherWorldStatusStroke.Color = Color3.fromRGB(54, 48, 68)
-otherWorldStatusStroke.Transparency = 0.35
-otherWorldStatusStroke.Thickness = 1
-otherWorldStatusStroke.Parent = otherWorldStatusLabel
+styleCard(otherWorldStatusLabel, 9)
 
 local bossOrder = {
     "Undyne",
@@ -1078,13 +1173,13 @@ local bossOrder = {
 }
 
 local buttonPositions = {
-    Undyne = {0, 0},
-    Outertale = {180, 0},
-    Hyperdust = {360, 0},
-    Bob = {0, 52},
-    OffHead = {180, 52},
-    Susportal = {360, 52},
-    FSEmerald = {0, 104}
+    Undyne = {0, 30},
+    Outertale = {180, 30},
+    Hyperdust = {360, 30},
+    Bob = {0, 82},
+    OffHead = {180, 82},
+    Susportal = {360, 82},
+    FSEmerald = {0, 134}
 }
 
 --==================================================
@@ -1106,12 +1201,12 @@ local function setButtonState(farmName, isOn)
 
     if isOn then
         button.Text = config.displayName .. " [ON]"
-        button.BackgroundColor3 = ON_COLOR
         button.TextColor3 = ON_TEXT
+        tween(button, {BackgroundColor3 = ON_COLOR}, 0.2)
     else
         button.Text = config.displayName .. " [OFF]"
-        button.BackgroundColor3 = OFF_COLOR
         button.TextColor3 = OFF_TEXT
+        tween(button, {BackgroundColor3 = OFF_COLOR}, 0.2)
     end
 end
 
@@ -1201,6 +1296,8 @@ for _, farmName in ipairs(bossOrder) do
     stroke.Thickness = 1
     stroke.Parent = button
 
+    addHover(button)
+
     bossButtons[farmName] = button
 
     button.MouseButton1Click:Connect(function()
@@ -1214,7 +1311,7 @@ end
 
 local autoLevelButton = Instance.new("TextButton")
 autoLevelButton.Size = UDim2.new(0, 165, 0, 42)
-autoLevelButton.Position = UDim2.new(0, 180, 0, 104)
+autoLevelButton.Position = UDim2.new(0, 180, 0, 134)
 autoLevelButton.BackgroundColor3 = OFF_COLOR
 autoLevelButton.TextColor3 = OFF_TEXT
 autoLevelButton.Text = "AUTO LEVEL [OFF]"
@@ -1227,15 +1324,23 @@ local autoLevelCorner = Instance.new("UICorner")
 autoLevelCorner.CornerRadius = UDim.new(0, 10)
 autoLevelCorner.Parent = autoLevelButton
 
+local autoLevelStroke = Instance.new("UIStroke")
+autoLevelStroke.Color = Color3.fromRGB(91, 75, 119)
+autoLevelStroke.Transparency = 0.2
+autoLevelStroke.Thickness = 1
+autoLevelStroke.Parent = autoLevelButton
+
+addHover(autoLevelButton)
+
 setAutoLevelState = function(on)
     if on then
         autoLevelButton.Text = "AUTO LEVEL [ON]"
-        autoLevelButton.BackgroundColor3 = ON_COLOR
         autoLevelButton.TextColor3 = ON_TEXT
+        tween(autoLevelButton, {BackgroundColor3 = ON_COLOR}, 0.2)
     else
         autoLevelButton.Text = "AUTO LEVEL [OFF]"
-        autoLevelButton.BackgroundColor3 = OFF_COLOR
         autoLevelButton.TextColor3 = OFF_TEXT
+        tween(autoLevelButton, {BackgroundColor3 = OFF_COLOR}, 0.2)
     end
 end
 
@@ -1284,7 +1389,7 @@ end)
 
 local npcTeleportButton = Instance.new("TextButton")
 npcTeleportButton.Size = UDim2.new(0, 165, 0, 42)
-npcTeleportButton.Position = UDim2.new(0, 360, 0, 104)
+npcTeleportButton.Position = UDim2.new(0, 360, 0, 134)
 npcTeleportButton.BackgroundColor3 = OFF_COLOR
 npcTeleportButton.TextColor3 = OFF_TEXT
 npcTeleportButton.Text = "TELEPORT TO XP NPC"
@@ -1296,6 +1401,14 @@ npcTeleportButton.Parent = farmContainer
 local npcTeleportCorner = Instance.new("UICorner")
 npcTeleportCorner.CornerRadius = UDim.new(0, 10)
 npcTeleportCorner.Parent = npcTeleportButton
+
+local npcTeleportStroke = Instance.new("UIStroke")
+npcTeleportStroke.Color = Color3.fromRGB(91, 75, 119)
+npcTeleportStroke.Transparency = 0.2
+npcTeleportStroke.Thickness = 1
+npcTeleportStroke.Parent = npcTeleportButton
+
+addHover(npcTeleportButton)
 
 npcTeleportButton.MouseButton1Click:Connect(function()
     autoLevel = false
@@ -1349,8 +1462,8 @@ end)
 --==================================================
 
 local farmInfo = Instance.new("TextLabel")
-farmInfo.Size = UDim2.new(0, 525, 0, 42)
-farmInfo.Position = UDim2.new(0, 0, 0, 156)
+farmInfo.Size = UDim2.new(1, 0, 0, 42)
+farmInfo.Position = UDim2.new(0, 0, 0, 192)
 farmInfo.BackgroundColor3 = Color3.fromRGB(21, 21, 27)
 farmInfo.TextColor3 = Color3.fromRGB(175, 175, 185)
 farmInfo.Text = "Farm inactive"
@@ -1358,14 +1471,11 @@ farmInfo.TextSize = 10
 farmInfo.Font = Enum.Font.GothamSemibold
 farmInfo.TextWrapped = true
 farmInfo.Parent = farmContainer
-
-local farmInfoCorner = Instance.new("UICorner")
-farmInfoCorner.CornerRadius = UDim.new(0, 10)
-farmInfoCorner.Parent = farmInfo
+styleCard(farmInfo, 10)
 
 statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(0, 525, 0, 42)
-statusLabel.Position = UDim2.new(0, 0, 0, 208)
+statusLabel.Size = UDim2.new(1, 0, 0, 42)
+statusLabel.Position = UDim2.new(0, 0, 0, 244)
 statusLabel.BackgroundColor3 = Color3.fromRGB(21, 21, 27)
 statusLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
 statusLabel.Text = "STATUS: " .. currentStatus
@@ -1373,13 +1483,10 @@ statusLabel.TextSize = 10
 statusLabel.Font = Enum.Font.GothamSemibold
 statusLabel.TextWrapped = true
 statusLabel.Parent = farmContainer
-
-local statusCorner = Instance.new("UICorner")
-statusCorner.CornerRadius = UDim.new(0, 10)
-statusCorner.Parent = statusLabel
+styleCard(statusLabel, 10)
 
 --==================================================
--- SETTINGS SAYFASI
+-- SETTINGS SAYFASI (ISTATISTIK KARTLARI)
 --==================================================
 
 local settingsContainer = Instance.new("Frame")
@@ -1389,21 +1496,65 @@ styleContentPanel(settingsContainer)
 settingsContainer.Visible = false
 settingsContainer.Parent = frame
 
-local settingsStats = Instance.new("TextLabel")
-settingsStats.Size = UDim2.new(1, 0, 0, 240)
-settingsStats.Position = UDim2.new(0, 0, 0, 0)
-settingsStats.BackgroundColor3 = Color3.fromRGB(21, 21, 27)
-settingsStats.TextColor3 = Color3.fromRGB(220, 220, 230)
-settingsStats.TextSize = 12
-settingsStats.Font = Enum.Font.GothamSemibold
-settingsStats.TextXAlignment = Enum.TextXAlignment.Left
-settingsStats.TextYAlignment = Enum.TextYAlignment.Top
-settingsStats.TextWrapped = true
-settingsStats.Parent = settingsContainer
+local statValueLabels = {}
 
-local settingsCorner = Instance.new("UICorner")
-settingsCorner.CornerRadius = UDim.new(0, 12)
-settingsCorner.Parent = settingsStats
+local function makeStatCard(index, titleText)
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(0, 125, 0, 70)
+    card.Position = UDim2.new(0, (index - 1) * 137, 0, 0)
+    card.BackgroundColor3 = Color3.fromRGB(21, 21, 27)
+    card.BorderSizePixel = 0
+    card.Parent = settingsContainer
+    styleCard(card, 11)
+
+    local cardTitle = Instance.new("TextLabel")
+    cardTitle.Size = UDim2.new(1, -20, 0, 14)
+    cardTitle.Position = UDim2.new(0, 10, 0, 10)
+    cardTitle.BackgroundTransparency = 1
+    cardTitle.Text = titleText
+    cardTitle.TextColor3 = Color3.fromRGB(167, 153, 190)
+    cardTitle.TextSize = 10
+    cardTitle.Font = Enum.Font.GothamMedium
+    cardTitle.TextXAlignment = Enum.TextXAlignment.Left
+    cardTitle.Parent = card
+
+    local cardValue = Instance.new("TextLabel")
+    cardValue.Size = UDim2.new(1, -20, 0, 28)
+    cardValue.Position = UDim2.new(0, 10, 0, 30)
+    cardValue.BackgroundTransparency = 1
+    cardValue.Text = "0"
+    cardValue.TextColor3 = Color3.fromRGB(255, 255, 255)
+    cardValue.TextScaled = true
+    cardValue.Font = Enum.Font.GothamBold
+    cardValue.TextXAlignment = Enum.TextXAlignment.Left
+    cardValue.Parent = card
+
+    local sizeLimit = Instance.new("UITextSizeConstraint")
+    sizeLimit.MaxTextSize = 20
+    sizeLimit.MinTextSize = 9
+    sizeLimit.Parent = cardValue
+
+    statValueLabels[titleText] = cardValue
+end
+
+makeStatCard(1, "LEVEL")
+makeStatCard(2, "GOLD")
+makeStatCard(3, "BOSS KILLS")
+makeStatCard(4, "FARM TIME")
+
+local killsBox = Instance.new("TextLabel")
+killsBox.Size = UDim2.new(1, 0, 0, 200)
+killsBox.Position = UDim2.new(0, 0, 0, 84)
+killsBox.BackgroundColor3 = Color3.fromRGB(21, 21, 27)
+killsBox.TextColor3 = Color3.fromRGB(220, 220, 230)
+killsBox.TextSize = 12
+killsBox.Font = Enum.Font.GothamSemibold
+killsBox.TextXAlignment = Enum.TextXAlignment.Left
+killsBox.TextYAlignment = Enum.TextYAlignment.Top
+killsBox.TextWrapped = true
+killsBox.Text = ""
+killsBox.Parent = settingsContainer
+styleCard(killsBox, 11)
 
 --==================================================
 -- SUNUCULAR SAYFASI
@@ -1417,7 +1568,7 @@ serversContainer.Visible = false
 serversContainer.Parent = frame
 
 local serversHeader = Instance.new("TextLabel")
-serversHeader.Size = UDim2.new(1, 0, 0, 28)
+serversHeader.Size = UDim2.new(1, -96, 0, 28)
 serversHeader.Position = UDim2.new(0, 0, 0, 0)
 serversHeader.BackgroundTransparency = 1
 serversHeader.TextColor3 = Color3.fromRGB(235, 235, 245)
@@ -1426,6 +1577,30 @@ serversHeader.TextSize = 12
 serversHeader.Font = Enum.Font.GothamBold
 serversHeader.TextXAlignment = Enum.TextXAlignment.Left
 serversHeader.Parent = serversContainer
+
+local refreshButton = Instance.new("TextButton")
+refreshButton.Size = UDim2.new(0, 84, 0, 24)
+refreshButton.Position = UDim2.new(1, -84, 0, 2)
+refreshButton.BackgroundColor3 = OFF_COLOR
+refreshButton.TextColor3 = OFF_TEXT
+refreshButton.Text = "YENILE"
+refreshButton.TextSize = 10
+refreshButton.Font = Enum.Font.GothamBold
+refreshButton.AutoButtonColor = false
+refreshButton.BorderSizePixel = 0
+refreshButton.Parent = serversContainer
+
+local refreshCorner = Instance.new("UICorner")
+refreshCorner.CornerRadius = UDim.new(0, 8)
+refreshCorner.Parent = refreshButton
+
+local refreshStroke = Instance.new("UIStroke")
+refreshStroke.Color = Color3.fromRGB(91, 75, 119)
+refreshStroke.Transparency = 0.2
+refreshStroke.Thickness = 1
+refreshStroke.Parent = refreshButton
+
+addHover(refreshButton)
 
 local serversScroll = Instance.new("ScrollingFrame")
 serversScroll.Size = UDim2.new(1, 0, 1, -34)
@@ -1453,6 +1628,18 @@ serversListPadding.PaddingBottom = UDim.new(0, 7)
 serversListPadding.PaddingLeft = UDim.new(0, 7)
 serversListPadding.PaddingRight = UDim.new(0, 7)
 serversListPadding.Parent = serversScroll
+
+local function pingColor(ping)
+    if not ping then
+        return "#9a9aa8"
+    elseif ping < 100 then
+        return "#66e08a"
+    elseif ping < 200 then
+        return "#f2c94c"
+    end
+
+    return "#ff6b6b"
+end
 
 local serversLoadToken = 0
 
@@ -1529,7 +1716,7 @@ local function loadServersList()
             item.Parent = serversScroll
 
             local itemCorner = Instance.new("UICorner")
-            itemCorner.CornerRadius = UDim.new(0, 6)
+            itemCorner.CornerRadius = UDim.new(0, 8)
             itemCorner.Parent = item
 
             local infoText = Instance.new("TextLabel")
@@ -1539,6 +1726,7 @@ local function loadServersList()
             infoText.TextColor3 = Color3.fromRGB(245, 245, 250)
             infoText.TextXAlignment = Enum.TextXAlignment.Left
             infoText.Font = Enum.Font.Gotham
+            infoText.RichText = true
 
             local pingValue = tonumber(server.ping)
             local pingText = pingValue
@@ -1547,10 +1735,11 @@ local function loadServersList()
 
             infoText.TextSize = 11
             infoText.Text = string.format(
-                "%s  %d/%d oyuncu  •  %s",
+                '%s  %d/%d oyuncu  •  <font color="%s">%s</font>',
                 isCurrentServer and "●" or "○",
                 tonumber(server.playing) or 0,
                 tonumber(server.maxPlayers) or 0,
+                pingColor(pingValue),
                 pingText
             )
             infoText.Parent = item
@@ -1568,7 +1757,7 @@ local function loadServersList()
             joinButton.Parent = item
 
             local joinCorner = Instance.new("UICorner")
-            joinCorner.CornerRadius = UDim.new(0, 5)
+            joinCorner.CornerRadius = UDim.new(0, 6)
             joinCorner.Parent = joinButton
 
             if not isCurrentServer then
@@ -1594,11 +1783,17 @@ local function loadServersList()
     end)
 end
 
+refreshButton.MouseButton1Click:Connect(function()
+    loadServersList()
+end)
+
 --==================================================
 -- SAYFA DEGISTIRME
 --==================================================
 
-local function setActivePage(activePage)
+setActivePage = function(activePage)
+    currentPage = activePage
+
     farmContainer.Visible = activePage == "farm"
     otherWorldContainer.Visible = activePage == "otherWorld"
     settingsContainer.Visible = activePage == "settings"
@@ -1607,8 +1802,10 @@ local function setActivePage(activePage)
     for pageName, pageButton in pairs(pageButtons) do
         local selected = pageName == activePage
 
-        pageButton.BackgroundColor3 = selected and ON_COLOR or OFF_COLOR
         pageButton.TextColor3 = selected and ON_TEXT or OFF_TEXT
+        tween(pageButton, {BackgroundColor3 = selected and ON_COLOR or OFF_COLOR}, 0.18)
+
+        pageBars[pageName].Visible = selected
 
         local stroke = pageButtonStrokes[pageName]
         stroke.Color = selected
@@ -1638,7 +1835,34 @@ end)
 setActivePage("farm")
 
 --==================================================
--- ZAMAN FORMATI
+-- KUCULTME TUSU
+--==================================================
+
+minimizeButton.MouseButton1Click:Connect(function()
+    minimized = not minimized
+
+    if minimized then
+        sidebar.Visible = false
+        versionBadge.Visible = false
+        farmContainer.Visible = false
+        otherWorldContainer.Visible = false
+        settingsContainer.Visible = false
+        serversContainer.Visible = false
+        miniLabel.Visible = true
+        minimizeButton.Text = "+"
+        tween(frame, {Size = MINI_SIZE}, 0.2)
+    else
+        sidebar.Visible = true
+        versionBadge.Visible = true
+        miniLabel.Visible = false
+        minimizeButton.Text = "-"
+        tween(frame, {Size = FULL_SIZE}, 0.2)
+        setActivePage(currentPage)
+    end
+end)
+
+--==================================================
+-- FORMATLAR
 --==================================================
 
 local function formatTime(seconds)
@@ -1649,6 +1873,15 @@ local function formatTime(seconds)
     local secs = seconds % 60
 
     return string.format("%02d:%02d:%02d", hours, minutes, secs)
+end
+
+local function formatNumber(n)
+    local s = string.format("%.0f", n)
+    local reversed = string.reverse(s)
+    reversed = string.gsub(reversed, "(%d%d%d)", "%1,")
+    local result = string.reverse(reversed)
+    result = string.gsub(result, "^,", "")
+    return result
 end
 
 --==================================================
@@ -1682,24 +1915,33 @@ task.spawn(function()
 
         if activeFarm then
             farmInfo.Text = "● ACTIVE: " .. farmConfigs[activeFarm].displayName
+            sbDot.BackgroundColor3 = Color3.fromRGB(94, 220, 130)
+            sbStatus.Text = "RUNNING"
+            miniLabel.Text = "ELITE HUB  •  RUNNING"
         else
             farmInfo.Text = "Farm inactive"
+            sbDot.BackgroundColor3 = Color3.fromRGB(120, 118, 135)
+            sbStatus.Text = "IDLE"
+            miniLabel.Text = "ELITE HUB  •  IDLE"
         end
 
-        settingsStats.Text =
-            "   LIVE STATS\n\n" ..
-            "   LEVEL: " .. tostring(level) ..
-            "\n   GOLD: " .. tostring(gold) ..
-            "\n\n   TOTAL BOSS KILLS: " .. tostring(totalKills) ..
-            "\n\n   UNDYNE: " .. tostring(kills.Undyne) ..
+        sbLevel.Text = "LV " .. formatNumber(level)
+
+        statValueLabels["LEVEL"].Text = formatNumber(level)
+        statValueLabels["GOLD"].Text = formatNumber(gold)
+        statValueLabels["BOSS KILLS"].Text = formatNumber(totalKills)
+        statValueLabels["FARM TIME"].Text = formatTime(currentFarmTime)
+
+        killsBox.Text =
+            "   BOSS KILLS\n\n" ..
+            "   UNDYNE: " .. tostring(kills.Undyne) ..
             "        OUTERTALE: " .. tostring(kills.Outertale) ..
             "\n   HYPERDUST: " .. tostring(kills.Hyperdust) ..
             "        BOB: " .. tostring(kills.Bob) ..
             "\n   OFF HEAD: " .. tostring(kills.OffHead) ..
             "        SUSPORTAL: " .. tostring(kills.Susportal) ..
             "\n   FS EMERALD: " .. tostring(kills.FSEmerald) ..
-            "        WATERCOOLER: " .. tostring(kills.Watercooler) ..
-            "\n\n   TOTAL AUTO FARM TIME: " .. formatTime(currentFarmTime)
+            "        WATERCOOLER: " .. tostring(kills.Watercooler)
     end
 end)
 
@@ -2426,15 +2668,12 @@ end
 --==================================================
 -- FS EMERALD PAPYRUS OZEL SAVAS
 -- Acilis: 1 ile bir vurus, 2 ile bir vurus, tekrar 1
--- Can <= %50: 4 numarali esyayi sec ve kullan
--- Can <= %30: 3 numarali esyayi sec ve kullan
--- Iyilestirme tamamlanmadan otomatik saldiri yapma.
+-- Her 20 sn: 2'yi eline al, bir vur, 1'e don
+-- Heal: ortak auto heal (3 tusu, can %30 alti)
 --==================================================
 
-local fsHealInProgress = false
-
 local function useSecondWeaponOnce()
-    if fsHealInProgress then
+    if healing then
         return
     end
 
@@ -2467,7 +2706,6 @@ local function runFsFight(farmName, config)
             return
         end
 
-        -- Ortak eski otoheal yalnizca 3 tusunu kullanir.
         if not healing then
             if tick() - lastSecond >= 20 then
                 lastSecond = tick()
