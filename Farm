@@ -706,6 +706,61 @@ frameStroke.Thickness = 1.5
 frameStroke.Transparency = 0.25
 frameStroke.Parent = frame
 
+-- Ust kenarda ince mor vurgu cizgisi
+local topAccent = Instance.new("Frame")
+topAccent.Name = "TopAccent"
+topAccent.Size = UDim2.new(1, -28, 0, 3)
+topAccent.Position = UDim2.new(0, 14, 0, 0)
+topAccent.BackgroundColor3 = Color3.fromRGB(160, 100, 255)
+topAccent.BorderSizePixel = 0
+topAccent.ZIndex = 20
+topAccent.Parent = frame
+
+local topAccentCorner = Instance.new("UICorner")
+topAccentCorner.CornerRadius = UDim.new(1, 0)
+topAccentCorner.Parent = topAccent
+
+local topAccentGradient = Instance.new("UIGradient")
+topAccentGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(91, 70, 190)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(196, 126, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(91, 70, 190))
+})
+topAccentGradient.Parent = topAccent
+
+-- Surum etiketi: ana panelin sag alt kosesi
+local versionBadge = Instance.new("Frame")
+versionBadge.Name = "VersionBadge"
+versionBadge.Size = UDim2.new(0, 58, 0, 22)
+versionBadge.Position = UDim2.new(1, -70, 1, -30)
+versionBadge.BackgroundColor3 = Color3.fromRGB(47, 34, 68)
+versionBadge.BackgroundTransparency = 0.08
+versionBadge.BorderSizePixel = 0
+versionBadge.ZIndex = 50
+versionBadge.Parent = frame
+
+local versionBadgeCorner = Instance.new("UICorner")
+versionBadgeCorner.CornerRadius = UDim.new(0, 7)
+versionBadgeCorner.Parent = versionBadge
+
+local versionBadgeStroke = Instance.new("UIStroke")
+versionBadgeStroke.Color = Color3.fromRGB(151, 103, 211)
+versionBadgeStroke.Transparency = 0.25
+versionBadgeStroke.Thickness = 1
+versionBadgeStroke.Parent = versionBadge
+
+local versionLabel = Instance.new("TextLabel")
+versionLabel.Name = "VersionText"
+versionLabel.Size = UDim2.new(1, 0, 1, 0)
+versionLabel.BackgroundTransparency = 1
+versionLabel.Text = "v.1.0"
+versionLabel.TextColor3 = Color3.fromRGB(218, 190, 255)
+versionLabel.TextSize = 10
+versionLabel.Font = Enum.Font.GothamBold
+versionLabel.TextXAlignment = Enum.TextXAlignment.Center
+versionLabel.ZIndex = 51
+versionLabel.Parent = versionBadge
+
 local function styleContentPanel(panel)
     panel.BackgroundColor3 = Color3.fromRGB(21, 21, 29)
     panel.BackgroundTransparency = 0.12
@@ -885,9 +940,9 @@ local otherWorldButton
 -- BUTON RENKLERI
 --==================================================
 
-local OFF_COLOR = Color3.fromRGB(25, 25, 32)
-local OFF_TEXT = Color3.fromRGB(180, 180, 190)
-local ON_COLOR = Color3.fromRGB(65, 30, 95)
+local OFF_COLOR = Color3.fromRGB(27, 27, 38)
+local OFF_TEXT = Color3.fromRGB(196, 194, 211)
+local ON_COLOR = Color3.fromRGB(91, 48, 137)
 local ON_TEXT = Color3.fromRGB(255, 255, 255)
 
 local bossButtons = {}
@@ -1066,7 +1121,8 @@ for _, farmName in ipairs(bossOrder) do
     corner.Parent = button
 
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(40, 40, 50)
+    stroke.Color = Color3.fromRGB(91, 75, 119)
+    stroke.Transparency = 0.2
     stroke.Thickness = 1
     stroke.Parent = button
 
