@@ -561,25 +561,23 @@ local function getHealthPercent()
 end
 
 --==================================================
--- UNIVERSAL AUTO HEAL
--- Tum bosslarda: %50'de 4, %30 ve altinda 3.
--- Eski otoheal gibi: esyayi sec, alt taraftan kullan,
--- animasyon bitene kadar bekle, sonra kilica don.
+-- AUTO HEAL (eski sistem: yalnizca 3 tusu, can %30 alti)
 --==================================================
 
 local healing = false
-local heal30Ready = true
-local heal50Ready = true
+local healReady = true
 
-local function doHeal(key, equipWait, castWait)
+local function doHeal()
     if healing then
-        return false
+        return
     end
 
     healing = true
-    local ok, err = pcall(function()
-        pressKey(key)
-        task.wait(equipWait)
+
+    pcall(function()
+        pressKey(Enum.KeyCode.Three)
+
+        task.wait(0.05)
 
         local camera = workspace.CurrentCamera
         if not camera then
@@ -594,21 +592,15 @@ local function doHeal(key, equipWait, castWait)
         task.wait(0.05)
         VIM:SendMouseButtonEvent(clickX, clickY, 0, false, game, 1)
 
-        task.wait(castWait)
+        task.wait(0.3)
         equipSword()
         task.wait(3.5)
     end)
 
     healing = false
-
-    if not ok then
-        warn("Auto heal failed: " .. tostring(err))
-        return false
-    end
-
-    return true
 end
 
+-- Tum secili bosslarda yalnizca 3 numarali esyayi kullan.
 task.spawn(function()
     while true do
         task.wait(0.2)
@@ -618,34 +610,20 @@ task.spawn(function()
 
             if hp then
                 if hp > 30 then
-                    heal30Ready = true
-                end
-                if hp > 50 then
-                    heal50Ready = true
-                end
+                    healReady = true
+                elseif hp <= 30 and healReady and not healing then
+                    healReady = false
+                    setStatus("HP <= 30%; using item 3")
+                    doHeal()
 
-                if not healing then
-                    if hp <= 30 and heal30Ready then
-                        heal30Ready = false
-                        heal50Ready = false
-                        setStatus("HP <= 30%; using item 3")
-                        doHeal(Enum.KeyCode.Three, 0.1, 1.5)
-                        if activeFarm then
-                            setStatus("Fighting " .. (farmConfigs[activeFarm] and farmConfigs[activeFarm].displayName or activeFarm))
-                        end
-                    elseif hp <= 50 and heal50Ready then
-                        heal50Ready = false
-                        setStatus("HP <= 50%; using item 4")
-                        doHeal(Enum.KeyCode.Four, 0.5, 3)
-                        if activeFarm then
-                            setStatus("Fighting " .. (farmConfigs[activeFarm] and farmConfigs[activeFarm].displayName or activeFarm))
-                        end
+                    if activeFarm then
+                        local config = farmConfigs[activeFarm]
+                        setStatus("Fighting " .. (config and config.displayName or activeFarm))
                     end
                 end
             end
         else
-            heal30Ready = true
-            heal50Ready = true
+            healReady = true
         end
     end
 end)
@@ -2382,46 +2360,6 @@ end
 
 local fsHealInProgress = false
 
-local function useHealItem(key, equipWait, holdTime, castTime)
-    if fsHealInProgress then
-        return false
-    end
-
-    fsHealInProgress = true
-    local succeeded, err = pcall(function()
-        -- Once ilgili esyayi eline al.
-        pressKey(key)
-        task.wait(equipWait)
-
-        -- Eline aldiktan sonra sol tikla kullan.
-        local camera = workspace.CurrentCamera
-        if not camera then
-            error("CurrentCamera is unavailable")
-        end
-
-        local viewport = camera.ViewportSize
-        local clickX = viewport.X / 2
-        local clickY = viewport.Y / 2
-
-        VIM:SendMouseButtonEvent(clickX, clickY, 0, true, game, 1)
-        task.wait(holdTime)
-        VIM:SendMouseButtonEvent(clickX, clickY, 0, false, game, 1)
-
-        -- Esya kullanimi tamamlansin; sonra kilica don.
-        task.wait(castTime)
-        equipSword()
-    end)
-
-    fsHealInProgress = false
-
-    if not succeeded then
-        warn("FS Emerald heal item failed: " .. tostring(err))
-        return false
-    end
-
-    return true
-end
-
 local function useSecondWeaponOnce()
     if fsHealInProgress then
         return
@@ -2456,9 +2394,8 @@ local function runFsFight(farmName, config)
             return
         end
 
-        -- Universal autoheal handles every boss, including FS Emerald.
-        -- Pause attack input while the shared heal routine is selecting/using an item.
-        if not healing and not fsHealInProgress then
+        -- Ortak eski otoheal yalnizca 3 tusunu kullanir.
+        if not healing then
             if tick() - lastSecond >= 20 then
                 lastSecond = tick()
                 useSecondWeaponOnce()
