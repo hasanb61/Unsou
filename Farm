@@ -2295,34 +2295,58 @@ end
 --==================================================
 -- FS EMERALD PAPYRUS OZEL SAVAS
 -- Acilis: 1 ile bir vurus, 2 ile bir vurus, tekrar 1
--- Her 20 sn: 2'yi eline al, bir vur, 1'e don
--- Can <= %30: 3 (heal) | Can <= %50: 4 (heal)
+-- Can <= %50: 4 numarali esyayi sec ve kullan
+-- Can <= %30: 3 numarali esyayi sec ve kullan
+-- Iyilestirme tamamlanmadan otomatik saldiri yapma.
 --==================================================
 
--- equipWait: tusa bastiktan sonra tiklamadan once bekleme
--- holdTime: tiklamayi basili tutma suresi
--- castTime: tiklamadan sonra kilica donmeden once bekleme
-local function useHealItem(key, equipWait, holdTime, castTime)
-    pcall(function()
-        pressKey(key)
+local fsHealInProgress = false
 
+local function useHealItem(key, equipWait, holdTime, castTime)
+    if fsHealInProgress then
+        return false
+    end
+
+    fsHealInProgress = true
+    local succeeded, err = pcall(function()
+        -- Once ilgili esyayi eline al.
+        pressKey(key)
         task.wait(equipWait)
 
-        local viewport = workspace.CurrentCamera.ViewportSize
+        -- Eline aldiktan sonra sol tikla kullan.
+        local camera = workspace.CurrentCamera
+        if not camera then
+            error("CurrentCamera is unavailable")
+        end
+
+        local viewport = camera.ViewportSize
         local clickX = viewport.X / 2
-        local clickY = viewport.Y - 100
+        local clickY = viewport.Y / 2
 
         VIM:SendMouseButtonEvent(clickX, clickY, 0, true, game, 1)
         task.wait(holdTime)
         VIM:SendMouseButtonEvent(clickX, clickY, 0, false, game, 1)
 
+        -- Esya kullanimi tamamlansin; sonra kilica don.
         task.wait(castTime)
-
         equipSword()
     end)
+
+    fsHealInProgress = false
+
+    if not succeeded then
+        warn("FS Emerald heal item failed: " .. tostring(err))
+        return false
+    end
+
+    return true
 end
 
 local function useSecondWeaponOnce()
+    if fsHealInProgress then
+        return
+    end
+
     pressKey(Enum.KeyCode.Two)
     task.wait(0.15)
     centerClick()
@@ -2331,7 +2355,7 @@ local function useSecondWeaponOnce()
 end
 
 local function runFsFight(farmName, config)
-    -- acilis
+    -- Acilis
     equipSword()
     task.wait(0.15)
     centerClick()
@@ -2351,9 +2375,7 @@ local function runFsFight(farmName, config)
             setStatus("Boss defeated")
 
             task.wait(2)
-
             afterKill(config)
-
             return
         end
 
@@ -2368,31 +2390,36 @@ local function runFsFight(farmName, config)
                 heal50Ready = true
             end
 
-            if tick() >= healBusyUntil then
+            if tick() >= healBusyUntil and not fsHealInProgress then
                 if hp <= 30 and heal30Ready then
+                    -- Kritik can: 3 numarali esya, 4'ten daha yuksek oncelikli.
                     heal30Ready = false
                     healBusyUntil = tick() + 4
-                    setStatus("Low HP; using 3 (heal)")
-                    useHealItem(Enum.KeyCode.Three, 0.15, 0.1, 0.5)
+                    setStatus("HP <= 30%; equipping and using item 3")
+                    useHealItem(Enum.KeyCode.Three, 0.25, 0.15, 1.5)
                     setStatus("Fighting " .. config.displayName)
                 elseif hp <= 50 and heal50Ready then
+                    -- Can %30'un ustunde ve %50 veya altindaysa 4 numarali esya.
                     heal50Ready = false
                     healBusyUntil = tick() + 6
-                    setStatus("HP below 50%; using 4 (heal)")
-                    useHealItem(Enum.KeyCode.Four, 0.6, 0.3, 3)
+                    setStatus("HP <= 50%; equipping and using item 4")
+                    useHealItem(Enum.KeyCode.Four, 0.5, 0.2, 3)
                     setStatus("Fighting " .. config.displayName)
                 end
             end
         end
 
-        if tick() - lastSecond >= 20 then
-            lastSecond = tick()
-            useSecondWeaponOnce()
-        end
+        -- Esya secme/kullanma sirasinda saldiri tiklamalari esyayi bozmasin.
+        if not fsHealInProgress then
+            if tick() - lastSecond >= 20 then
+                lastSecond = tick()
+                useSecondWeaponOnce()
+            end
 
-        if tick() - lastClick >= 0.10 then
-            centerClick()
-            lastClick = tick()
+            if tick() - lastClick >= 0.10 then
+                centerClick()
+                lastClick = tick()
+            end
         end
 
         task.wait(0.03)
