@@ -561,25 +561,32 @@ local function getHealthPercent()
 end
 
 --==================================================
--- HEAL (Susportal icin: 3 tusu, can %30 alti)
+-- UNIVERSAL AUTO HEAL
+-- Tum bosslarda: %50'de 4, %30 ve altinda 3.
+-- Eski otoheal gibi: esyayi sec, alt taraftan kullan,
+-- animasyon bitene kadar bekle, sonra kilica don.
 --==================================================
 
 local healing = false
-local healReady = true
+local heal30Ready = true
+local heal50Ready = true
 
-local function doHeal()
+local function doHeal(key, equipWait, castWait)
     if healing then
-        return
+        return false
     end
 
     healing = true
+    local ok, err = pcall(function()
+        pressKey(key)
+        task.wait(equipWait)
 
-    pcall(function()
-        pressKey(Enum.KeyCode.Three)
+        local camera = workspace.CurrentCamera
+        if not camera then
+            error("CurrentCamera is unavailable")
+        end
 
-        task.wait(0.05)
-
-        local viewport = workspace.CurrentCamera.ViewportSize
+        local viewport = camera.ViewportSize
         local clickX = viewport.X / 2
         local clickY = viewport.Y - 100
 
@@ -587,41 +594,58 @@ local function doHeal()
         task.wait(0.05)
         VIM:SendMouseButtonEvent(clickX, clickY, 0, false, game, 1)
 
-        task.wait(0.3)
-
+        task.wait(castWait)
         equipSword()
-
         task.wait(3.5)
     end)
 
     healing = false
-end
 
---==================================================
--- AUTO HEAL (sadece config.heal = true olan bosslar)
---==================================================
+    if not ok then
+        warn("Auto heal failed: " .. tostring(err))
+        return false
+    end
+
+    return true
+end
 
 task.spawn(function()
     while true do
         task.wait(0.2)
 
         if activeFarm then
-            local config = farmConfigs[activeFarm]
+            local hp = getHealthPercent()
 
-            if config and config.heal then
-                local hp = getHealthPercent()
+            if hp then
+                if hp > 30 then
+                    heal30Ready = true
+                end
+                if hp > 50 then
+                    heal50Ready = true
+                end
 
-                if hp then
-                    if hp <= 30 then
-                        if healReady then
-                            healReady = false
-                            doHeal()
+                if not healing then
+                    if hp <= 30 and heal30Ready then
+                        heal30Ready = false
+                        heal50Ready = false
+                        setStatus("HP <= 30%; using item 3")
+                        doHeal(Enum.KeyCode.Three, 0.1, 1.5)
+                        if activeFarm then
+                            setStatus("Fighting " .. (farmConfigs[activeFarm] and farmConfigs[activeFarm].displayName or activeFarm))
                         end
-                    elseif hp > 30 then
-                        healReady = true
+                    elseif hp <= 50 and heal50Ready then
+                        heal50Ready = false
+                        setStatus("HP <= 50%; using item 4")
+                        doHeal(Enum.KeyCode.Four, 0.5, 3)
+                        if activeFarm then
+                            setStatus("Fighting " .. (farmConfigs[activeFarm] and farmConfigs[activeFarm].displayName or activeFarm))
+                        end
                     end
                 end
             end
+        else
+            heal30Ready = true
+            heal50Ready = true
         end
     end
 end)
@@ -2420,9 +2444,6 @@ local function runFsFight(farmName, config)
 
     local lastSecond = tick()
     local lastClick = 0
-    local heal30Ready = true
-    local heal50Ready = true
-    local healBusyUntil = 0
 
     while activeFarm == farmName do
         if not findBossModel(config.bossName, config.prefixMatch) then
@@ -2435,38 +2456,9 @@ local function runFsFight(farmName, config)
             return
         end
 
-        local hp = getHealthPercent()
-
-        if hp then
-            if hp > 30 then
-                heal30Ready = true
-            end
-
-            if hp > 50 then
-                heal50Ready = true
-            end
-
-            if tick() >= healBusyUntil and not fsHealInProgress then
-                if hp <= 30 and heal30Ready then
-                    -- Kritik can: 3 numarali esya, 4'ten daha yuksek oncelikli.
-                    heal30Ready = false
-                    healBusyUntil = tick() + 4
-                    setStatus("HP <= 30%; equipping and using item 3")
-                    useHealItem(Enum.KeyCode.Three, 0.25, 0.15, 1.5)
-                    setStatus("Fighting " .. config.displayName)
-                elseif hp <= 50 and heal50Ready then
-                    -- Can %30'un ustunde ve %50 veya altindaysa 4 numarali esya.
-                    heal50Ready = false
-                    healBusyUntil = tick() + 6
-                    setStatus("HP <= 50%; equipping and using item 4")
-                    useHealItem(Enum.KeyCode.Four, 0.5, 0.2, 3)
-                    setStatus("Fighting " .. config.displayName)
-                end
-            end
-        end
-
-        -- Esya secme/kullanma sirasinda saldiri tiklamalari esyayi bozmasin.
-        if not fsHealInProgress then
+        -- Universal autoheal handles every boss, including FS Emerald.
+        -- Pause attack input while the shared heal routine is selecting/using an item.
+        if not healing and not fsHealInProgress then
             if tick() - lastSecond >= 20 then
                 lastSecond = tick()
                 useSecondWeaponOnce()
@@ -2763,7 +2755,7 @@ local function runBoss(farmName)
             end
         end
 
-        if tick() - lastClick >= 0.10 then
+        if not healing and tick() - lastClick >= 0.10 then
             centerClick()
             lastClick = tick()
         end
