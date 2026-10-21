@@ -586,7 +586,7 @@ local function doHeal()
 
         local viewport = camera.ViewportSize
         local clickX = viewport.X / 2
-        local clickY = viewport.Y - 100
+        local clickY = viewport.Y / 2
 
         VIM:SendMouseButtonEvent(clickX, clickY, 0, true, game, 1)
         task.wait(0.05)
